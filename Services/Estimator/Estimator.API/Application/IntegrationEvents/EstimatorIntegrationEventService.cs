@@ -10,7 +10,7 @@
 
         public EstimatorIntegrationEventService(IEventBus eventBus,
             EstimatorContext estimatorContext,
-            IntegrationEventLogContext eventLogContext,
+            IntegrationEventLogContext eventLogContext, 
             Func<DbConnection, IIntegrationEventLogService> integrationEventLogServiceFactory,
             ILogger<EstimatorIntegrationEventService> logger)
         {
