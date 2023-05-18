@@ -1,0 +1,36 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/BuildingBlocks/Devspaces.Support/obj
+/BuildingBlocks/Domain.Base/bin/Debug/net7.0
+/BuildingBlocks/Domain.Base/obj
+/BuildingBlocks/Domain.Base/Properties
+/BuildingBlocks/EventBus/EventBus/bin/Debug/net7.0
+/BuildingBlocks/EventBus/EventBus/obj
+/BuildingBlocks/EventBus/EventBus.Tests/bin/Debug/net7.0
+/BuildingBlocks/EventBus/EventBus.Tests/obj
+/BuildingBlocks/EventBus/EventBusRabbitMQ/bin/Debug/net7.0
+/BuildingBlocks/EventBus/EventBusRabbitMQ/obj
+/BuildingBlocks/EventBus/EventBusServiceBus/bin/Debug/net7.0
+/BuildingBlocks/EventBus/EventBusServiceBus/obj
+/BuildingBlocks/EventBus/IntegrationEventLogEF/bin/Debug/net7.0
+/BuildingBlocks/EventBus/IntegrationEventLogEF/obj
+/BuildingBlocks/WebHostCustomization/WebHost.Customization/bin/Debug/net7.0
+/BuildingBlocks/WebHostCustomization/WebHost.Customization/obj
+/CodeGenerator/bin/Debug/net7.0
+/CodeGenerator/obj
+/Services/Estimator/Estimator.API/obj
+/Services/Estimator/Estimator.API/Properties
+/Services/Estimator/Estimator.Domain/bin/Debug/net7.0
+/Services/Estimator/Estimator.Domain/obj
+/Services/Estimator/Estimator.Infrastructure/bin/Debug/net7.0
+/Services/Estimator/Estimator.Infrastructure/obj
+/infrastructure.txt
+/domain.txt
+/application.txt
+/api-other.txt
+/api-application.txt
+/all code.txt
+/.gitignore

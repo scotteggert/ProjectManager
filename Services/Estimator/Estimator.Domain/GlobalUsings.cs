@@ -1,0 +1,12 @@
+﻿global using global::Estimator.Domain.Exceptions;
+global using MediatR;
+global using ProjectManager.Domain.Base;
+global using Estimator.Domain.AggregatesModel.Estimate;
+global using Estimator.Domain.AggregatesModel.RateCard;
+global using Estimator.Domain.Events;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Reflection;
+global using System.Threading.Tasks;
+global using System.Threading;
+global using System;
