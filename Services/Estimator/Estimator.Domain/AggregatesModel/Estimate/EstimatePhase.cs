@@ -5,6 +5,8 @@
         private readonly string _name;
         private readonly string _description;
         private List<EstimatePhaseRateCardItem> _rateCardItems = new List<EstimatePhaseRateCardItem>();
+        private readonly DateTime _estimatedStartDate;
+        private readonly DateTime _estimatedEndDate;
 
         public EstimatePhase(string name, string description)
         {

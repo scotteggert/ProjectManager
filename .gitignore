@@ -27,10 +27,6 @@
 /Services/Estimator/Estimator.Domain/obj
 /Services/Estimator/Estimator.Infrastructure/bin/Debug/net7.0
 /Services/Estimator/Estimator.Infrastructure/obj
-/infrastructure.txt
-/domain.txt
-/application.txt
-/api-other.txt
-/api-application.txt
-/all code.txt
 /.gitignore
+/FrontEnd/Estimator.UI.Maui/bin/Debug
+/FrontEnd/Estimator.UI.Maui/obj

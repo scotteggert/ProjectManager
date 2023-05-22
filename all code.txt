@@ -1,0 +1,464 @@
+
+global using global::Estimator.Domain.Exceptions;
+global using MediatR;
+global using ProjectManager.Domain.Base;
+global using Estimator.Domain.AggregatesModel.Estimate;
+global using Estimator.Domain.AggregatesModel.RateCard;
+global using Estimator.Domain.Events;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Reflection;
+global using System.Threading.Tasks;
+global using System.Threading;
+global using System;
+
+namespace Estimator.Domain.Exceptions;
+
+/// <summary>
+/// Exception type for domain exceptions
+/// </summary>
+public class EstimatorDomainException : Exception
+{
+    public EstimatorDomainException()
+    { }
+
+    public EstimatorDomainException(string message)
+        : base(message)
+    { }
+
+    public EstimatorDomainException(string message, Exception innerException)
+        : base(message, innerException)
+    { }
+}
+
+
+using System;
+using System.Collections.Generic;
+//using Estimator.Domain.Seedwork;
+
+namespace Estimator.Domain.AggregatesModel.Estimate
+{
+    public class Estimate : Entity, IAggregateRoot
+    {
+        // Private fields
+        private readonly string _clientName;
+        private readonly string _jobCode;
+        private readonly string _projectManager;
+        private readonly List<EstimatePhase> _phases = new List<EstimatePhase>();
+        private RateCard.RateCard _rateCard;
+        private decimal _totalEstimate;
+
+        // Constructors
+        private Estimate() { }
+
+        public Estimate(string clientName, string jobCode, string projectManager, RateCard.RateCard rateCard)
+        {
+            _clientName = clientName ?? throw new ArgumentNullException(nameof(clientName));
+            _jobCode = jobCode ?? throw new ArgumentNullException(nameof(jobCode));
+            _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
+            _rateCard = rateCard ?? throw new ArgumentNullException(nameof(rateCard));
+        }
+
+        // Public properties
+        public string ClientName => _clientName;
+        public string JobCode => _jobCode;
+        public string ProjectManager => _projectManager;
+        public IReadOnlyList<EstimatePhase> Phases => _phases;
+        public RateCard.RateCard RateCard => _rateCard;
+
+        public decimal TotalEstimate
+        {
+            get => _totalEstimate;
+            private set => _totalEstimate = value;
+        }
+
+        // Public methods
+        public void AddPhase(EstimatePhase phase)
+        {
+            if (phase == null)
+            {
+                throw new ArgumentNullException(nameof(phase));
+            }
+
+            if (_phases.Any(p => p.Name == phase.Name))
+            {
+                throw new InvalidOperationException($"Phase '{phase.Name}' already exists in the estimate.");
+            }
+
+            _phases.Add(phase);
+
+            // Publish domain event
+            AddDomainEvent(new EstimatePhaseAdded(this, phase));
+
+            CalculateTotalEstimate();
+        }
+
+        public void UpdateRateCard(RateCard.RateCard rateCard)
+        {
+            if (rateCard == null)
+            {
+                throw new ArgumentNullException(nameof(rateCard));
+            }
+
+            _rateCard = rateCard;
+
+            // Publish domain event
+            AddDomainEvent(new RateCardUpdated(this, rateCard));
+        }
+
+        public void RemovePhase(EstimatePhase phase)
+        {
+            if (phase == null)
+            {
+                throw new ArgumentNullException(nameof(phase));
+            }
+
+            _phases.Remove(phase);
+
+            // Publish domain event
+            AddDomainEvent(new EstimatePhaseRemoved(this, phase));
+
+            CalculateTotalEstimate();
+        }
+        public void CalculateTotalEstimate()
+        {
+            _totalEstimate = _phases.Sum(phase => phase.GetTotal());
+        }
+    }
+}
+    
+
+using Estimator.Domain.Events.Estimate;
+
+namespace Estimator.Domain.AggregatesModel.Estimate
+{
+    public class EstimatePhase : Entity
+    {
+        // Private fields
+        private readonly List<RateCardItem> _rateCardItems = new List<RateCardItem>();
+        private readonly string _name;
+        private readonly string _description;
+
+        // Constructors
+        public EstimatePhase(string name, string description)
+        {
+            _name = name ?? throw new ArgumentNullException(nameof(name));
+            _description = description ?? throw new ArgumentNullException(nameof(description));
+        }
+
+        // Public properties
+        public IReadOnlyList<RateCardItem> RateCardItems => _rateCardItems;
+        public string Name => _name;
+        public string Description => _description;
+
+        // Public methods
+        public void AddRateCardItem(RateCardItem rateCardItem)
+        {
+            if (rateCardItem == null)
+            {
+                throw new ArgumentNullException(nameof(rateCardItem));
+            }
+
+            _rateCardItems.Add(rateCardItem);
+            // Publish domain event
+            AddDomainEvent(new RateCardItemAddedToPhase(this, rateCardItem));
+        }
+        public void UpdateRateCardItem(RateCardItem rateCardItem)
+        {
+            if (rateCardItem == null)
+            {
+                throw new ArgumentNullException(nameof(rateCardItem));
+            }
+
+            var existingItem = _rateCardItems.FirstOrDefault(item => item.RoleName == rateCardItem.RoleName);
+            if (existingItem != null)
+            {
+                _rateCardItems.Remove(existingItem);
+            }
+
+            _rateCardItems.Add(rateCardItem);
+            AddDomainEvent(new RateCardItemUpdatedInPhase(this, rateCardItem));
+        }
+        public void RemoveRateCardItem(RateCardItem rateCardItem)
+        {
+            if (rateCardItem == null)
+            {
+                throw new ArgumentNullException(nameof(rateCardItem));
+            }
+
+            _rateCardItems.Remove(rateCardItem);
+            AddDomainEvent(new RateCardItemUpdatedInPhase(this, rateCardItem));
+        }
+
+        public decimal GetTotal()
+        {
+            return _rateCardItems.Sum(item => item.Rate);
+        }
+    }
+}
+
+
+namespace Estimator.Domain.AggregatesModel.RateCard
+{
+    public class RateCard : Entity, IAggregateRoot
+    {
+        // Private fields
+        private readonly string _name;
+        private readonly List<RateCardItem> _items = new List<RateCardItem>();
+
+        // Constructors
+        private RateCard() { }
+
+        public RateCard(string name)
+        {
+            _name = name ?? throw new ArgumentNullException(nameof(name));
+
+            // Raise domain event
+            AddDomainEvent(new RateCardCreated(this));
+        }
+
+        // Public properties
+        public string Name => _name;
+        public IReadOnlyList<RateCardItem> Items => _items;
+
+        // Public methods
+        public void AddItem(string roleName, decimal rate, DateTime effectiveFrom, DateTime? effectiveTo = null)
+        {
+            ValidateRoleNameIsUnique(roleName);
+
+            if (string.IsNullOrWhiteSpace(roleName))
+            {
+                throw new ArgumentException("Role name cannot be null or empty", nameof(roleName));
+            }
+
+            if (rate < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(rate), "Rate cannot be negative");
+            }
+            if (effectiveTo.HasValue && effectiveFrom > effectiveTo.Value)
+            {
+                throw new ArgumentException("Effective From date cannot be later than Effective To date");
+            }
+            var item = new RateCardItem(roleName, rate, effectiveFrom, effectiveTo);
+            _items.Add(item);
+
+            // Publish domain event
+            AddDomainEvent(new RateCardItemAdded(this, item));
+        }
+        public void RemoveItem(string roleName)
+        {
+            if (string.IsNullOrWhiteSpace(roleName))
+            {
+                throw new ArgumentException("Role name cannot be null or empty", nameof(roleName));
+            }
+
+            var itemToRemove = _items.FirstOrDefault(item => item.RoleName == roleName);
+            if (itemToRemove == null)
+            {
+                throw new InvalidOperationException($"Role '{roleName}' not found in the rate card.");
+            }
+
+            _items.Remove(itemToRemove);
+
+            // Publish domain event
+            AddDomainEvent(new RateCardItemRemoved(this, itemToRemove));
+        }
+        private void ValidateRoleNameIsUnique(string roleName)
+        {
+            if (_items.Any(item => item.RoleName == roleName))
+            {
+                throw new InvalidOperationException($"Role '{roleName}' already exists in the rate card.");
+            }
+        }
+    }
+}
+
+namespace Estimator.Domain.AggregatesModel.RateCard
+{
+    public class RateCardItem
+    {
+        // Private fields
+        private readonly string _roleName;
+        private readonly decimal _rate;
+        private readonly DateTime _effectiveFrom;
+        private readonly DateTime? _effectiveTo;
+
+        // Constructors
+        public RateCardItem(string roleName, decimal rate, DateTime effectiveFrom, DateTime? effectiveTo = null)
+        {
+            _roleName = roleName ?? throw new ArgumentNullException(nameof(roleName));
+            _rate = rate;
+            _effectiveFrom = effectiveFrom;
+            _effectiveTo = effectiveTo;
+        }
+
+        // Public properties
+        public string RoleName => _roleName;
+        public decimal Rate => _rate;
+        public DateTime EffectiveFrom => _effectiveFrom;
+        public DateTime? EffectiveTo => _effectiveTo;
+    }
+}
+
+
+namespace Estimator.Domain.Events
+{
+    public class EstimateCreatedDomainEvent : INotification
+    {
+        public EstimateCreatedDomainEvent(Estimate estimate)
+        {
+            Estimate = estimate ?? throw new ArgumentNullException(nameof(estimate));
+        }
+
+        public Estimate Estimate { get; }
+    }
+}
+
+
+namespace Estimator.Domain.Events
+{
+    public class EstimatePhaseAdded : INotification
+    {
+        public EstimatePhaseAdded(Estimate estimate, EstimatePhase phase)
+        {
+            Estimate = estimate ?? throw new ArgumentNullException(nameof(estimate));
+            Phase = phase ?? throw new ArgumentNullException(nameof(phase));
+        }
+
+        public Estimate Estimate { get; }
+        public EstimatePhase Phase { get; }
+    }
+}
+
+
+namespace Estimator.Domain.Events
+{
+    public class EstimatePhaseRemoved : INotification
+    {
+        public EstimatePhaseRemoved(Estimate estimate, EstimatePhase phase)
+        {
+            Estimate = estimate ?? throw new ArgumentNullException(nameof(estimate));
+            Phase = phase ?? throw new ArgumentNullException(nameof(phase));
+        }
+
+        public Estimate Estimate { get; }
+        public EstimatePhase Phase { get; }
+    }
+}
+
+namespace Estimator.Domain.Events.Estimate
+{
+    public class RateCardItemAddedToPhase : INotification
+    {
+        public RateCardItemAddedToPhase(EstimatePhase phase, RateCardItem item)
+        {
+            Phase = phase ?? throw new ArgumentNullException(nameof(phase));
+            Item = item ?? throw new ArgumentNullException(nameof(item));
+        }
+
+        public EstimatePhase Phase { get; }
+        public RateCardItem Item { get; }
+    }
+
+}
+
+
+namespace Estimator.Domain.Events.Estimate
+{
+    public class RateCardItemRemovedFromPhase : INotification
+    {
+        public RateCardItemRemovedFromPhase(EstimatePhase phase, RateCardItem item)
+        {
+            Phase = phase ?? throw new ArgumentNullException(nameof(phase));
+            Item = item ?? throw new ArgumentNullException(nameof(item));
+        }
+
+        public EstimatePhase Phase { get; }
+        public RateCardItem Item { get; }
+    }
+}
+
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Estimator.Domain.Events.Estimate
+{
+    public class RateCardItemUpdatedInPhase : INotification
+    {
+        public RateCardItemUpdatedInPhase(EstimatePhase phase, RateCardItem item)
+        {
+            Phase = phase ?? throw new ArgumentNullException(nameof(phase));
+            Item = item ?? throw new ArgumentNullException(nameof(item));
+        }
+
+        public EstimatePhase Phase { get; }
+        public RateCardItem Item { get; }
+    }
+}
+
+
+namespace Estimator.Domain.Events
+{
+    public class RateCardCreated : INotification
+    {
+        public RateCardCreated(RateCard rateCard)
+        {
+            RateCard = rateCard ?? throw new ArgumentNullException(nameof(rateCard));
+        }
+
+        public RateCard RateCard { get; }
+    }
+}
+
+
+namespace Estimator.Domain.Events
+{
+    public class RateCardItemAdded : INotification
+    {
+        public RateCardItemAdded(RateCard rateCard, RateCardItem item)
+        {
+            RateCard = rateCard ?? throw new ArgumentNullException(nameof(rateCard));
+            Item = item ?? throw new ArgumentNullException(nameof(item));
+        }
+
+        public RateCard RateCard { get; }
+        public RateCardItem Item { get; }
+    
+    }
+}
+
+
+namespace Estimator.Domain.Events
+{
+    public class RateCardItemRemoved : INotification
+    {
+        public RateCardItemRemoved(RateCard rateCard, RateCardItem item)
+        {
+            RateCard = rateCard ?? throw new ArgumentNullException(nameof(rateCard));
+            Item = item ?? throw new ArgumentNullException(nameof(item));
+        }
+
+        public RateCard RateCard { get; }
+        public RateCardItem Item { get; }
+    }
+}
+
+namespace Estimator.Domain.Events
+{
+    public class RateCardUpdated : INotification
+    {
+        public RateCardUpdated(Estimate estimate, RateCard rateCard)
+        {
+            Estimate = estimate ?? throw new ArgumentNullException(nameof(estimate));
+            RateCard = rateCard ?? throw new ArgumentNullException(nameof(rateCard));
+        }
+
+        public Estimate Estimate { get; }
+        public RateCard RateCard { get; }
+    }
+}
+

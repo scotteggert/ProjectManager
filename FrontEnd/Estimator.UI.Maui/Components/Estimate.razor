@@ -1,0 +1,113 @@
+﻿<h3>Estimate</h3>
+@using Microsoft.Extensions.Logging
+@using Estimator.UI.Maui.Components
+@inject ILogger<Error> Logger
+
+<h5>Make an Estimate</h5>
+<EditForm EditContext="@editContext">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group">
+        <label>Client Name</label>
+        <InputText class="form-control" @bind-Value="estimate.ClientName" />
+    </div>
+    <div class="form-group">
+        <label>Job Code</label>
+        <InputText class="form-control" @bind-Value="estimate.JobCode" />
+    </div>
+    <div class="form-group">
+        <label>Project Manager</label>
+        <InputText class="form-control" @bind-Value="estimate.ProjectManager" />
+    </div>
+    <div class="form-group">
+        <label>Estimate Date</label>
+        <InputDate class="form-control" @bind-Value="estimate.EstimatedStartDate" />
+    </div>
+    <button type="submit" class="btn btn-primary" @onclick="SaveEstimate">Save Estimate</button>
+
+    <div>
+        <EstimatePhaseList estimate="estimate" />
+    </div>
+
+</EditForm>
+
+
+
+@code {
+    private EditContext? editContext;
+
+    [Parameter]
+    public string estimateId { get; set; } = string.Empty;
+
+    [Parameter]
+    public Estimator.UI.Model.Estimate? estimate { get; set; } = new Estimator.UI.Model.Estimate();
+
+    [CascadingParameter]
+    public Error? Error { get; set; }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Logger.LogInformation("In Estimate Component");
+            if (estimate == null)
+            {
+                estimate = new Estimator.UI.Model.Estimate();
+            }
+            editContext = new EditContext(estimate);
+
+            editContext.OnFieldChanged += EditContext_OnFieldChanged;
+        }
+        catch (Exception ex)
+        {
+            Error?.ProcessError(ex);
+        }
+
+    }
+
+    private void EditContext_OnFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        try
+        {
+            Logger.LogInformation("Hey Hey");
+        }
+        catch (Exception ex)
+        {
+            Error?.ProcessError(ex);
+        }
+    }
+
+    private async Task SaveEstimate()
+    {
+        if (editContext != null && editContext.Validate())
+        {
+            await Task.CompletedTask;
+        }
+    }
+
+    private void HandlePhaseSaved(Model.EstimatePhase phase)
+    {
+        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Id == phase.Id);
+        if (findPhase != null)
+        {
+            findPhase.Name = phase.Name;
+            findPhase.Description = phase.Description;
+            findPhase.RateCardItems = phase.RateCardItems;
+        }
+        else
+        {
+            estimate.EstimatePhases.Add(phase);
+        }
+    }
+
+    private void HandlePhaseDeleted(Model.EstimatePhase phase)
+    {
+        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Id == phase.Id);
+        if (findPhase != null)
+        {
+            estimate.EstimatePhases.Remove(findPhase);
+        }
+    }
+
+
+}

@@ -1,0 +1,49 @@
+﻿<h3>Estimate Phase</h3>
+<table class="table">
+    <tr>
+        <td>Phase Name</td>
+        <td>
+            <InputText @bind-Value="phase.Name"></InputText>
+        </td>
+    </tr>
+    <tr>
+        <td>Description</td>
+        <td>
+            <InputText @bind-Value="phase.Description"></InputText>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2">
+            <button @onclick="SavePhase">Save Phase</button>
+            <button @onclick="DeletePhase">Delete Phase</button>
+        </td>
+    </tr>
+    <tr>
+        <td>Resources for this Phase</td>
+        <td>
+        </td>
+    </tr>
+</table>
+
+@code {
+    [Parameter]
+    public Estimator.UI.Model.EstimatePhase phase { get; set; } = new Estimator.UI.Model.EstimatePhase();
+
+    [Parameter]
+    public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseSaved { get; set; }
+
+    [Parameter]
+    public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseDeleted { get; set; }
+
+
+    private async Task SavePhase()
+    {
+        await OnPhaseSaved.InvokeAsync(phase);
+
+    }
+
+    private async Task DeletePhase()
+    {
+        await OnPhaseDeleted.InvokeAsync(phase);
+    }
+}

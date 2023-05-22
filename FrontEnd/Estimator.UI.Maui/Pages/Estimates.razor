@@ -1,0 +1,79 @@
+﻿@page "/estimates"
+@inject IEstimator EstimatorService
+@using Microsoft.Extensions.Logging
+
+@inject NavigationManager NavigationManager
+@inject ILogger<Estimates> Logger
+
+<h3>Estimates</h3>
+<div class="container">
+    <div class="row" hidden="@_hideList">
+        <button class="btn" @onclick="CreateNewEstimate">Create New Estimate</button>
+    </div>
+    <div class="row" hidden="@_hideList">
+        <div class="col-md-12">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Client Name</th>
+                        <th>Job Code</th>
+                        <th>Project Manager</th>
+                        <th>Estimate Date</th>
+                        <th>Estimate Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var estimate in _estimates)
+                    {
+                        <tr>
+                            <td>@estimate.ClientName </td>
+                            <td>@estimate.JobCode</td>
+                            <td>@estimate.ProjectManager</td>
+                            <td>@estimate.EstimatedStartDate</td>
+                            <td></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row" hidden="@_hideEstimate">
+        <button class="btn" @onclick="ShowEstimates">Show Estimates</button>
+    </div>
+    <div class="row" hidden="@_hideEstimate">
+        <Estimator.UI.Maui.Components.Estimate estimate="@_currentEstimate"></Estimator.UI.Maui.Components.Estimate>
+    </div>
+</div>
+
+    
+@code {
+    private IEnumerable<Estimator.UI.Model.Estimate> _estimates = new List<Estimator.UI.Model.Estimate>();
+    private bool _hideList { get; set; } = false;
+    private bool _hideEstimate { get; set; } = true;
+
+    private Estimator.UI.Model.Estimate _currentEstimate = null;
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("Now loading... Estimates");
+
+        _estimates = EstimatorService.GetEstimates();
+
+    }
+
+
+    private void CreateNewEstimate()
+    {
+        _currentEstimate = new Estimator.UI.Model.Estimate();
+        _hideList = true;
+        _hideEstimate = false;
+       
+    }
+    private void ShowEstimates()
+    {
+        _hideList = false;
+        _hideEstimate = true;
+        _currentEstimate = null;
+    }
+
+}

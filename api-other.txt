@@ -1,0 +1,329 @@
+
+namespace ProjectManager.Services.Estimator.API;
+public class EstimatorSettings { public bool UseCustomizationData { get; set;}  public string ConnectionString { get; set;}  public string EventBusConnection { get; set;}  public int GracePeriodTime { get; set;}  public int CheckUpdateTime { get; set;} } 
+
+global using Autofac.Extensions.DependencyInjection;
+global using Autofac;
+global using Azure.Core;
+global using Azure.Identity;
+global using Dapper;
+global using Estimator.Infrastructure;
+global using Estimator.Domain.Events;
+global using Estimator.Domain.Exceptions;
+global using Estimator.Domain.AggregatesModel.Estimate;
+global using Estimator.Domain.AggregatesModel.RateCard;
+global using FluentValidation;
+global using Google.Protobuf.Collections;
+global using Grpc.Core;
+global using HealthChecks.UI.Client;
+global using MediatR;
+global using Microsoft.AspNetCore.Authorization;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+global using Microsoft.AspNetCore.Hosting;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc.Authorization;
+global using Microsoft.AspNetCore.Mvc.Filters;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.Server.Kestrel.Core;
+global using Microsoft.AspNetCore;
+global using Microsoft.EntityFrameworkCore.Design;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.eShopOnContainers.BuildingBlocks.EventBus.Abstractions;
+global using Microsoft.eShopOnContainers.BuildingBlocks.EventBus.Events;
+global using Microsoft.eShopOnContainers.BuildingBlocks.EventBus.Extensions;
+global using Microsoft.eShopOnContainers.BuildingBlocks.EventBus;
+global using Microsoft.eShopOnContainers.BuildingBlocks.EventBusRabbitMQ;
+global using Microsoft.eShopOnContainers.BuildingBlocks.EventBusServiceBus;
+global using Microsoft.eShopOnContainers.BuildingBlocks.IntegrationEventLogEF.Services;
+global using Microsoft.eShopOnContainers.BuildingBlocks.IntegrationEventLogEF;
+global using Estimator.API.Controllers;
+global using Estimator.API.Infrastructure.ActionResults;
+global using Estimator.API.Infrastructure.Filters;
+global using Estimator.API.Infrastructure.Services;
+global using Estimator.Application.CommandHandlers;
+global using Estimator.Application.Commands;
+global using GrpcEstimator;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Diagnostics.HealthChecks;
+global using Microsoft.Extensions.Hosting;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
+global using Microsoft.OpenApi.Models;
+global using Polly.Retry;
+global using Polly;
+global using RabbitMQ.Client;
+global using Serilog.Context;
+global using Serilog;
+global using Swashbuckle.AspNetCore.SwaggerGen;
+global using System.Collections.Generic;
+global using System.Data.Common;
+global using System.Data.SqlClient;
+global using System.IdentityModel.Tokens.Jwt;
+global using System.IO;
+global using System.Linq;
+global using System.Net;
+global using System.Reflection;
+global using System.Runtime.Serialization;
+global using System.Threading.Tasks;
+global using System.Threading;
+global using System;
+
+
+using Microsoft.Extensions.DependencyInjection;
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+var app = builder.Build();
+if (app.Environment.IsDevelopment()) { app.UseSwagger();
+ app.UseSwaggerUI();} app.UseHttpsRedirection();
+var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+};
+app.MapGet("/weatherforecast", () => { var forecast = Enumerable.Range(1, 5).Select(index =>
+ new WeatherForecast
+ (
+ DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+ Random.Shared.Next(-20, 55),
+ summaries[Random.Shared.Next(summaries.Length)]
+ ))
+ .ToArray();
+ return forecast;
+})
+.WithName("GetWeatherForecast")
+.WithOpenApi();
+app.Run();
+internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary) { public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);} public partial class Program { public static string Namespace = typeof(Program).Assembly.GetName().Name;
+ public static string AppName = Namespace.Substring(Namespace.LastIndexOf('.', Namespace.LastIndexOf('.') - 1) + 1);} static class CustomExtensionsMethods { public static IServiceCollection AddApplicationInsights(this IServiceCollection services, IConfiguration configuration) { services.AddApplicationInsightsTelemetry(configuration);
+ services.AddApplicationInsightsKubernetesEnricher();
+ return services;}  public static IServiceCollection AddCustomMvc(this IServiceCollection services) { services.AddControllers(options => { options.Filters.Add(typeof(HttpGlobalExceptionFilter));
+ })
+ .AddApplicationPart(typeof(Estimator.API.Controllers.Estimator).Assembly)
+ .AddJsonOptions(options => options.JsonSerializerOptions.WriteIndented = true);
+ services.AddCors(options => { options.AddPolicy("CorsPolicy",
+ builder => builder
+ .SetIsOriginAllowed((host) => true)
+ .AllowAnyMethod()
+ .AllowAnyHeader()
+ .AllowCredentials());
+ });
+ return services;}  public static IServiceCollection AddHealthChecks(this IServiceCollection services, IConfiguration configuration) { var hcBuilder = services.AddHealthChecks();
+ hcBuilder.AddCheck("self", () => HealthCheckResult.Healthy());
+ hcBuilder
+ .AddSqlServer(
+ configuration["ConnectionString"],
+ name: "EstimatorDB-check",
+ tags: new string[] { "estimatordb" });
+ if (configuration.GetValue<bool>("AzureServiceBusEnabled")) { hcBuilder
+ .AddAzureServiceBusTopic(
+ configuration["EventBusConnection"],
+ topicName: "eshop_event_bus",
+ name: "estimator-servicebus-check",
+ tags: new string[] { "servicebus" });}  else { hcBuilder
+ .AddRabbitMQ(
+ $"amqp://{configuration["EventBusConnection"]}",
+ name: "estimator-rabbitmqbus-check",
+ tags: new string[] { "rabbitmqbus" });}  return services;}  public static IServiceCollection AddCustomDbContext(this IServiceCollection services, IConfiguration configuration) { services.AddDbContext<EstimatorContext>(options => { options.UseSqlServer(configuration["ConnectionString"],
+ sqlServerOptionsAction: sqlOptions => { sqlOptions.MigrationsAssembly(typeof(Program).GetTypeInfo().Assembly.GetName().Name);
+ sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+ });
+ },
+ ServiceLifetime.Scoped 
+ );
+ services.AddDbContext<IntegrationEventLogContext>(options => { options.UseSqlServer(configuration["ConnectionString"],
+ sqlServerOptionsAction: sqlOptions => { sqlOptions.MigrationsAssembly(typeof(Program).GetTypeInfo().Assembly.GetName().Name);
+ sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+ });
+ });
+ return services;}  public static IServiceCollection AddCustomSwagger(this IServiceCollection services, IConfiguration configuration) { services.AddSwaggerGen(options => { options.SwaggerDoc("v1", new OpenApiInfo { Title = "eShopOnContainers - Estimator HTTP API",
+ Version = "v1",
+ Description = "The Estimator Service HTTP API"
+ });
+ options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme { Type = SecuritySchemeType.OAuth2,
+ Flows = new OpenApiOAuthFlows() { Implicit = new OpenApiOAuthFlow() { AuthorizationUrl = new Uri($"{configuration.GetValue<string>("IdentityUrlExternal")}/connect/authorize"),
+ TokenUrl = new Uri($"{configuration.GetValue<string>("IdentityUrlExternal")}/connect/token"),
+ Scopes = new Dictionary<string, string>() { { "orders", "Estimator API"} } } }  });
+ options.OperationFilter<AuthorizeCheckOperationFilter>();
+ });
+ return services;}  public static IServiceCollection AddCustomIntegrations(this IServiceCollection services, IConfiguration configuration) { services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+ services.AddTransient<IIdentityService, IdentityService>();
+ services.AddTransient<Func<DbConnection, IIntegrationEventLogService>>(
+ sp => (DbConnection c) => new IntegrationEventLogService(c));
+ services.AddTransient<IEstimatorIntegrationEventService, EstimatorIntegrationEventService>();
+ if (configuration.GetValue<bool>("AzureServiceBusEnabled")) { services.AddSingleton<IServiceBusPersisterConnection>(sp => { var serviceBusConnectionString = configuration["EventBusConnection"];
+ var subscriptionClientName = configuration["SubscriptionClientName"];
+ return new DefaultServiceBusPersisterConnection(serviceBusConnectionString);
+ });}  else { services.AddSingleton<IRabbitMQPersistentConnection>(sp => { var logger = sp.GetRequiredService<ILogger<DefaultRabbitMQPersistentConnection>>();
+ var factory = new ConnectionFactory() { HostName = configuration["EventBusConnection"],
+ DispatchConsumersAsync = true
+ };
+ if (!string.IsNullOrEmpty(configuration["EventBusUserName"])) { factory.UserName = configuration["EventBusUserName"];}  if (!string.IsNullOrEmpty(configuration["EventBusPassword"])) { factory.Password = configuration["EventBusPassword"];}  var retryCount = 5;
+ if (!string.IsNullOrEmpty(configuration["EventBusRetryCount"])) { retryCount = int.Parse(configuration["EventBusRetryCount"]);}  return new DefaultRabbitMQPersistentConnection(factory, logger, retryCount);
+ });}  return services;}  public static IServiceCollection AddCustomConfiguration(this IServiceCollection services, IConfiguration configuration) { services.AddOptions();
+ services.Configure<EstimatorSettings>(configuration);
+ services.Configure<ApiBehaviorOptions>(options => { options.InvalidModelStateResponseFactory = context => { var problemDetails = new ValidationProblemDetails(context.ModelState) { Instance = context.HttpContext.Request.Path,
+ Status = StatusCodes.Status400BadRequest,
+ Detail = "Please refer to the errors property for additional details."
+ };
+ return new BadRequestObjectResult(problemDetails) { ContentTypes = { "application/problem+json", "application/problem+xml"}  };
+ };
+ });
+ return services;}  public static IServiceCollection AddEventBus(this IServiceCollection services, IConfiguration configuration) { if (configuration.GetValue<bool>("AzureServiceBusEnabled")) { services.AddSingleton<IEventBus, EventBusServiceBus>(sp => { var serviceBusPersisterConnection = sp.GetRequiredService<IServiceBusPersisterConnection>();
+ var logger = sp.GetRequiredService<ILogger<EventBusServiceBus>>();
+ var eventBusSubcriptionsManager = sp.GetRequiredService<IEventBusSubscriptionsManager>();
+ string subscriptionName = configuration["SubscriptionClientName"];
+ return new EventBusServiceBus(serviceBusPersisterConnection, logger,
+ eventBusSubcriptionsManager, sp, subscriptionName);
+ });}  else { services.AddSingleton<IEventBus, EventBusRabbitMQ>(sp => { var subscriptionClientName = configuration["SubscriptionClientName"];
+ var rabbitMQPersistentConnection = sp.GetRequiredService<IRabbitMQPersistentConnection>();
+ var logger = sp.GetRequiredService<ILogger<EventBusRabbitMQ>>();
+ var eventBusSubcriptionsManager = sp.GetRequiredService<IEventBusSubscriptionsManager>();
+ var retryCount = 5;
+ if (!string.IsNullOrEmpty(configuration["EventBusRetryCount"])) { retryCount = int.Parse(configuration["EventBusRetryCount"]);}  return new EventBusRabbitMQ(rabbitMQPersistentConnection, logger, sp, eventBusSubcriptionsManager, subscriptionClientName, retryCount);
+ });}  services.AddSingleton<IEventBusSubscriptionsManager, InMemoryEventBusSubscriptionsManager>();
+ return services;}  public static IServiceCollection AddCustomAuthentication(this IServiceCollection services, IConfiguration configuration) { JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Remove("sub");
+ var identityUrl = configuration.GetValue<string>("IdentityUrl");
+ services.AddAuthentication("Bearer").AddJwtBearer(options => { options.Authority = identityUrl;
+ options.RequireHttpsMetadata = false;
+ options.Audience = "orders";
+ options.TokenValidationParameters.ValidateAudience = false;
+ });
+ return services;}  public static IServiceCollection AddCustomAuthorization(this IServiceCollection services, IConfiguration configuration) { services.AddAuthorization(options => { options.AddPolicy("ApiScope", policy => { policy.RequireAuthenticatedUser();
+ policy.RequireClaim("scope", "orders");
+ });
+ });
+ return services;
+ }
+
+namespace Estimator.API.Controllers { public class Estimator {} } 
+
+namespace Estimator.API.Controllers { public class HomeController : Controller { public IActionResult Index() { return new RedirectResult("~/swagger");} } } 
+
+using System;
+using System.Net;
+using System.Threading.Tasks;
+using Estimator.API.Application.Commands.RateCard;
+using Estimator.API.Application.Queries.RateCard;
+using Estimator.API.Application.Models;
+using Estimator.Domain.AggregatesModel.RateCard;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+namespace Estimator.API.Controllers { [Route("api/[controller]")]
+ [ApiController]
+ public class RateCardsController : ControllerBase { private readonly IMediator _mediator;
+ private readonly IRateCardQueries _rateCardQueries;
+ public RateCardsController(IMediator mediator, IRateCardQueries rateCardQueries) { _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+ _rateCardQueries = rateCardQueries ?? throw new ArgumentNullException(nameof(rateCardQueries));}  [HttpPost]
+ [ProducesResponseType(typeof(RateCardDto), (int)HttpStatusCode.Created)]
+ public async Task<IActionResult> CreateRateCardAsync([FromBody] CreateRateCardCommand command) { var result = await _mediator.Send(command);
+ return CreatedAtAction(nameof(GetRateCardByIdAsync), new { id = result.Id }, result);}  [HttpGet("{id}")]
+ [ProducesResponseType(typeof(RateCardDto), (int)HttpStatusCode.OK)]
+ public async Task<IActionResult> GetRateCardByIdAsync(Guid id) { var rateCard = await _rateCardQueries.GetRateCardByIdAsync(id);
+ if (rateCard == null) { return NotFound();}  return Ok(rateCard);}  [HttpGet]
+ [ProducesResponseType(typeof(PaginatedItemsDto<RateCardDto>), (int)HttpStatusCode.OK)]
+ public async Task<IActionResult> GetRateCardsAsync([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0) { var rateCards = await _rateCardQueries.GetRateCardsAsync(pageSize, pageIndex);
+ var totalItems = rateCards.TotalCount;
+ var totalPages = (int)Math.Ceiling((decimal)totalItems / pageSize);
+ var model = new PaginatedItemsDto<RateCardDto>(pageIndex, pageSize, totalPages, rateCards.Items);
+ return Ok(model);}  [HttpPost("{id}/items")]
+ [ProducesResponseType((int)HttpStatusCode.Created)]
+ public async Task<IActionResult> AddRateCardItemAsync(Guid id, [FromBody] AddRateCardItemCommand command) { command.RateCardId = id;
+ await _mediator.Send(command);
+ return CreatedAtAction(nameof(GetRateCardByIdAsync), new { id }, null);} } }
+
+namespace GrpcEstimator { public class EstimatorService : EstimatorGrpc.EstimatorGrpcBase { private readonly IMediator _mediator;
+ private readonly ILogger<EstimatorService> _logger;
+ public EstimatorService(IMediator mediator, ILogger<EstimatorService> logger) { _mediator = mediator;
+ _logger = logger;} } } 
+
+namespace Estimator.API.Infrastructure;
+public class EstimatorContextSeed {} 
+
+namespace Estimator.API.Infrastructure.ActionResults;
+public class InternalServerErrorObjectResult : ObjectResult { public InternalServerErrorObjectResult(object error)
+ : base(error) { StatusCode = StatusCodes.Status500InternalServerError;} } 
+
+namespace Estimator.API.Infrastructure.Auth;
+public class AuthorizationHeaderParameterOperationFilter : IOperationFilter { public void Apply(OpenApiOperation operation, OperationFilterContext context) { var filterPipeline = context.ApiDescription.ActionDescriptor.FilterDescriptors;
+ var isAuthorized = filterPipeline.Select(filterInfo => filterInfo.Filter).Any(filter => filter is AuthorizeFilter);
+ var allowAnonymous = filterPipeline.Select(filterInfo => filterInfo.Filter).Any(filter => filter is IAllowAnonymousFilter);
+ if (isAuthorized && !allowAnonymous) { if (operation.Parameters == null)
+ operation.Parameters = new List<OpenApiParameter>();
+ operation.Parameters.Add(new OpenApiParameter { Name = "Authorization",
+ In = ParameterLocation.Header,
+ Description = "access token",
+ Required = true
+ });} } } 
+
+namespace Estimator.API.Infrastructure.AutofacModules;
+public class ApplicationModule
+ : Autofac.Module { public string QueriesConnectionString { get;}  public ApplicationModule(string qconstr) { QueriesConnectionString = qconstr;}  protected override void Load(ContainerBuilder builder) { builder.Register(c => new OrderQueries(QueriesConnectionString))
+ .As<IOrderQueries>()
+ .InstancePerLifetimeScope();
+ builder.RegisterType<BuyerRepository>()
+ .As<IBuyerRepository>()
+ .InstancePerLifetimeScope();
+ builder.RegisterType<OrderRepository>()
+ .As<IOrderRepository>()
+ .InstancePerLifetimeScope();
+ builder.RegisterType<RequestManager>()
+ .As<IRequestManager>()
+ .InstancePerLifetimeScope();
+ builder.RegisterAssemblyTypes(typeof(CreateOrderCommandHandler).GetTypeInfo().Assembly)
+ .AsClosedTypesOf(typeof(IIntegrationEventHandler<>));} } 
+
+namespace Estimator.API.Infrastructure.AutofacModules;
+public class MediatorModule : Autofac.Module { protected override void Load(ContainerBuilder builder) { builder.RegisterAssemblyTypes(typeof(IMediator).GetTypeInfo().Assembly)
+ .AsImplementedInterfaces();
+ builder.RegisterAssemblyTypes(typeof(CreateOrderCommand).GetTypeInfo().Assembly)
+ .AsClosedTypesOf(typeof(IRequestHandler<,>));
+ builder.RegisterAssemblyTypes(typeof(ValidateOrAddBuyerAggregateWhenOrderStartedDomainEventHandler).GetTypeInfo().Assembly)
+ .AsClosedTypesOf(typeof(INotificationHandler<>));
+ builder
+ .RegisterAssemblyTypes(typeof(CreateOrderCommandValidator).GetTypeInfo().Assembly)
+ .Where(t => t.IsClosedTypeOf(typeof(IValidator<>)))
+ .AsImplementedInterfaces();
+ builder.RegisterGeneric(typeof(LoggingBehavior<,>)).As(typeof(IPipelineBehavior<,>));
+ builder.RegisterGeneric(typeof(ValidatorBehavior<,>)).As(typeof(IPipelineBehavior<,>));
+ builder.RegisterGeneric(typeof(TransactionBehaviour<,>)).As(typeof(IPipelineBehavior<,>));} } 
+
+namespace Estimator.API.Infrastructure.Factories { public class EstimatorDbContextFactory : IDesignTimeDbContextFactory<EstimatorContext> { public EstimatorContext CreateDbContext(string[] args) { var config = new ConfigurationBuilder()
+ .SetBasePath(Path.Combine(Directory.GetCurrentDirectory()))
+ .AddJsonFile("appsettings.json")
+ .AddEnvironmentVariables()
+ .Build();
+ var optionsBuilder = new DbContextOptionsBuilder<EstimatorContext>();
+ optionsBuilder.UseSqlServer(config["ConnectionString"], sqlServerOptionsAction: o => o.MigrationsAssembly("Ordering.API"));
+ return new EstimatorContext(optionsBuilder.Options);} } } 
+
+namespace Estimator.API.Infrastructure.Filters { public class AuthorizeCheckOperationFilter : IOperationFilter { public void Apply(OpenApiOperation operation, OperationFilterContext context) { var hasAuthorize = context.MethodInfo.DeclaringType.GetCustomAttributes(true).OfType<AuthorizeAttribute>().Any() ||
+ context.MethodInfo.GetCustomAttributes(true).OfType<AuthorizeAttribute>().Any();
+ if (!hasAuthorize) return;
+ operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Unauthorized" });
+ operation.Responses.TryAdd("403", new OpenApiResponse { Description = "Forbidden" });
+ var oAuthScheme = new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "oauth2"}  };
+ operation.Security = new List<OpenApiSecurityRequirement> { new() { [ oAuthScheme ] = new [] { "estimatorapi"} }  };} } } 
+
+namespace Estimator.API.Infrastructure.Filters { public class HttpGlobalExceptionFilter : IExceptionFilter { private readonly IWebHostEnvironment env;
+ private readonly ILogger<HttpGlobalExceptionFilter> logger;
+ public HttpGlobalExceptionFilter(IWebHostEnvironment env, ILogger<HttpGlobalExceptionFilter> logger) { this.env = env;
+ this.logger = logger;}  public void OnException(ExceptionContext context) { logger.LogError(new EventId(context.Exception.HResult),
+ context.Exception,
+ context.Exception.Message);
+ if (context.Exception.GetType() == typeof(EstimatorDomainException)) { var problemDetails = new ValidationProblemDetails() { Instance = context.HttpContext.Request.Path,
+ Status = StatusCodes.Status400BadRequest,
+ Detail = "Please refer to the errors property for additional details."
+ };
+ problemDetails.Errors.Add("DomainValidations", new string[] { context.Exception.Message.ToString() });
+ context.Result = new BadRequestObjectResult(problemDetails);
+ context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;}  else { var json = new JsonErrorResponse { Messages = new[] { "An error occur.Try it again."}  };
+ if (env.IsDevelopment()) { json.DeveloperMessage = context.Exception;}  context.Result = new InternalServerErrorObjectResult(json);
+ context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;}  context.ExceptionHandled = true;}  private class JsonErrorResponse { public string[] Messages { get; set;}  public object DeveloperMessage { get; set;} } } } 
+
+namespace Estimator.API.Infrastructure.Services;
+public class IdentityService : IIdentityService { private IHttpContextAccessor _context;
+ public IdentityService(IHttpContextAccessor context) { _context = context ?? throw new ArgumentNullException(nameof(context));}  public string GetUserIdentity() { return _context.HttpContext.User.FindFirst("sub").Value;}  public string GetUserName() { return _context.HttpContext.User.Identity.Name;} } 
+
+namespace Estimator.API.Infrastructure.Services;
+public interface IIdentityService { string GetUserIdentity();
+ string GetUserName();} 

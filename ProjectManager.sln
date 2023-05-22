@@ -59,6 +59,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CodeGenerator", "CodeGenera
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "5. Front Ends", "5. Front Ends", "{60C7AB9F-8CE7-48D9-B93A-EADA883630BB}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estimator.UI.Maui", "FrontEnd\Estimator.UI.Maui\Estimator.UI.Maui.csproj", "{71F2EF55-693E-48CF-854D-1BFC1761DBF3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -109,6 +111,12 @@ Global
 		{ACC7BF3C-E51E-4B0F-AC77-5A5133E54003}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ACC7BF3C-E51E-4B0F-AC77-5A5133E54003}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ACC7BF3C-E51E-4B0F-AC77-5A5133E54003}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71F2EF55-693E-48CF-854D-1BFC1761DBF3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71F2EF55-693E-48CF-854D-1BFC1761DBF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71F2EF55-693E-48CF-854D-1BFC1761DBF3}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{71F2EF55-693E-48CF-854D-1BFC1761DBF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71F2EF55-693E-48CF-854D-1BFC1761DBF3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71F2EF55-693E-48CF-854D-1BFC1761DBF3}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -137,6 +145,7 @@ Global
 		{9FA4F18A-FB8A-471F-AE7E-769007054CE9} = {B284F5A2-7724-48D4-A3D1-DD478625BC2A}
 		{BD048DC6-CC44-415E-A32A-0B541626D033} = {B284F5A2-7724-48D4-A3D1-DD478625BC2A}
 		{ACC7BF3C-E51E-4B0F-AC77-5A5133E54003} = {7C1868FE-2BE8-4873-A96C-A71EF412949F}
+		{71F2EF55-693E-48CF-854D-1BFC1761DBF3} = {60C7AB9F-8CE7-48D9-B93A-EADA883630BB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A270C477-BBAA-4C23-A794-96B5CAD34BFE}

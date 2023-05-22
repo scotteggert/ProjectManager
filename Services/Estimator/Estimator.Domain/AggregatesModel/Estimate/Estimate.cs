@@ -9,17 +9,24 @@
         private readonly SortedList<int, EstimatePhase> _phases = new SortedList<int, EstimatePhase>();
         private RateCard.RateCard _rateCard;
         private decimal _totalEstimate;
+        private readonly DateTime _createdDate;
+        private readonly DateTime _estimatedStartDate;
+        private readonly DateTime _estimatedEndDate;
 
         // Constructors
         private Estimate() { }
 
-        public Estimate(string clientName, string jobCode, string projectManager, RateCard.RateCard rateCard, SortedList<int, EstimatePhase> phases)
+        public Estimate(string clientName, string jobCode, string projectManager, RateCard.RateCard rateCard, SortedList<int, EstimatePhase> phases, DateTime CreatedDate, DateTime EstimatedStartDate, DateTime EstimatedEndDate)
         {
             _clientName = clientName ?? throw new ArgumentNullException(nameof(clientName));
             _jobCode = jobCode ?? throw new ArgumentNullException(nameof(jobCode));
             _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
             _rateCard = rateCard ?? throw new ArgumentNullException(nameof(rateCard));
             _phases = phases ?? throw new ArgumentNullException(nameof(phases));
+            _createdDate = CreatedDate;
+            _estimatedStartDate = EstimatedStartDate;
+            _estimatedEndDate = EstimatedEndDate;
+
         }
 
         // Public properties
@@ -28,6 +35,9 @@
         public string ProjectManager => _projectManager;
         public IReadOnlyList<EstimatePhase> Phases => _phases.Values.ToList<EstimatePhase>();
         public RateCard.RateCard RateCard => _rateCard;
+        public DateTime CreatedDate => _createdDate;
+        public DateTime EstimatedStartDate => _estimatedStartDate;
+        public DateTime EstimatedEndDate => _estimatedEndDate;
 
         public decimal TotalEstimate
         {

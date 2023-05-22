@@ -7,5 +7,6 @@
         public Guid RateCardItemId { get; set; }
         public RateCardItem RateCardItem { get; set; } //
         public int Count { get; set; }
+        public int PercentageUtilized { get; set; }
     }
 }

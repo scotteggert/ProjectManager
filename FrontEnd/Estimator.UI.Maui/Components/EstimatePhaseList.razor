@@ -1,0 +1,102 @@
+﻿@using Microsoft.Extensions.Logging
+@inject ILogger<Error> Logger
+
+<h5>Estimate Phases</h5>
+<div class="container">
+    <div class="row" hidden="@_hideList">
+        <button class="btn" @onclick="CreateNewPhase">Create New Phase</button>
+    </div>
+    <div class="row" hidden="@_hideList">
+        <div class="col-md-12">
+            <h4>Phases</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Phase</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var phase in estimate.EstimatePhases)
+                    {
+                        <tr>
+                            <td>
+                                <div>@phase.Name</div>
+                                <div>
+                                    <h5>Staff Types Required</h5>
+                                    @foreach(var rci in phase.RateCardItems)
+                                    {
+                                        <div class="row">
+                                            <div class="col-2">Role Name</div>
+                                            <div class="col-2">Rate</div>
+                                            <div class="col-2">Number</div>
+                                            <div class="col-2">% Utilized</div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-2">@rci.RateCardItem.RoleName</div>
+                                            <div class="col-2">@rci.RateCardItem.Rate</div>
+                                            <div class="col-2">@rci.Count</div>
+                                            <div class="col-2">@rci.PercentageUtilized</div>
+                                        </div>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row" hidden="@_hidePhase">
+        <button class="btn" @onclick="ShowEstimatePhases">Show Estimate Phases</button>
+    </div>
+    <div class="row" hidden="@_hidePhase">
+        <EstimatePhase />
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Estimator.UI.Model.Estimate? estimate { get; set; } = new Estimator.UI.Model.Estimate();
+
+    [CascadingParameter]
+    public Error? Error { get; set; }
+
+
+    private bool _hideList { get; set; } = false;
+    private bool _hidePhase { get; set; } = true;
+
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Logger.LogInformation("In Estimate Phase List Component");
+            //if (estimate == null)
+            //{
+            //    estimate = new Estimator.UI.Model.Estimate();
+            //}
+            //editContext = new EditContext(estimate);
+
+            //editContext.OnFieldChanged += EditContext_OnFieldChanged;
+        }
+        catch (Exception ex)
+        {
+            Error?.ProcessError(ex);
+        }
+    }
+
+    private void CreateNewPhase()
+    {
+        _hideList = true;
+        _hidePhase = false;
+
+    }
+
+    private void ShowEstimatePhases()
+    {
+        _hideList = false;
+        _hidePhase = true;
+    }
+
+
+}

@@ -1,6 +1,6 @@
 ﻿namespace Estimator.Application.Queries
 {
-    public class EstimatorQueries
+    public class EstimatorQueries : IEstimatorQueries
     {
         private string _connectionString = string.Empty;
 

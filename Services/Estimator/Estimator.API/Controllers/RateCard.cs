@@ -3,9 +3,9 @@ using System.Net;
 using System.Threading.Tasks;
 using Estimator.Application.Commands;
 
-using  Estimator.API.Application.Commands.RateCard;
-using Estimator.API.Application.Queries.RateCard;
-using Estimator.API.Application.Models;
+using Estimator.Application.Commands;
+using Estimator.Application.Queries;
+using Estimator.Application.Models;
 using Estimator.Domain.AggregatesModel.RateCard;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;

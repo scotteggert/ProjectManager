@@ -46,6 +46,8 @@ global using Estimator.Application.CommandHandlers;
 global using Estimator.Application.Commands;
 global using Estimator.Application.IntegrationEvents;
 global using Estimator.Application.Models;
+global using Estimator.Application.Queries;
+
 global using GrpcEstimator;
 
 

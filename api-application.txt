@@ -1,0 +1,167 @@
+
+namespace Estimator.API.Application.Behaviors;
+public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse> { private readonly ILogger<LoggingBehavior<TRequest, TResponse>> _logger;
+ public LoggingBehavior(ILogger<LoggingBehavior<TRequest, TResponse>> logger) => _logger = logger;
+ public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken) { _logger.LogInformation("----- Handling command {CommandName} ({@Command})", request.GetGenericTypeName(), request);
+ var response = await next();
+ _logger.LogInformation("----- Command {CommandName} handled - response: {@Response}", request.GetGenericTypeName(), response);
+ return response;} } 
+
+namespace Estimator.API.Application.Behaviors;
+using Microsoft.Extensions.Logging;
+public class TransactionBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse> { private readonly ILogger<TransactionBehaviour<TRequest, TResponse>> _logger;
+ private readonly EstimatorContext _dbContext;
+ private readonly IEstimatorIntegrationEventService _orderingIntegrationEventService;
+ public TransactionBehaviour(EstimatorContext dbContext,
+ IEstimatorIntegrationEventService orderingIntegrationEventService,
+ ILogger<TransactionBehaviour<TRequest, TResponse>> logger) { _dbContext = dbContext ?? throw new ArgumentException(nameof(EstimatorContext));
+ _orderingIntegrationEventService = orderingIntegrationEventService ?? throw new ArgumentException(nameof(orderingIntegrationEventService));
+ _logger = logger ?? throw new ArgumentException(nameof(ILogger));}  public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken) { var response = default(TResponse);
+ var typeName = request.GetGenericTypeName();
+ try { if (_dbContext.HasActiveTransaction) { return await next();}  var strategy = _dbContext.Database.CreateExecutionStrategy();
+ await strategy.ExecuteAsync(async () => { Guid transactionId;
+ await using var transaction = await _dbContext.BeginTransactionAsync();
+ using (LogContext.PushProperty("TransactionContext", transaction.TransactionId)) { _logger.LogInformation("----- Begin transaction {TransactionId} for {CommandName} ({@Command})", transaction.TransactionId, typeName, request);
+ response = await next();
+ _logger.LogInformation("----- Commit transaction {TransactionId} for {CommandName}", transaction.TransactionId, typeName);
+ await _dbContext.CommitTransactionAsync(transaction);
+ transactionId = transaction.TransactionId;}  await _orderingIntegrationEventService.PublishEventsThroughEventBusAsync(transactionId);
+ });
+ return response;}  catch (Exception ex) { _logger.LogError(ex, "ERROR Handling transaction for {CommandName} ({@Command})", typeName, request);
+ throw;} } } 
+
+namespace Estimator.API.Application.Behaviors;
+public class ValidatorBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse> { private readonly ILogger<ValidatorBehavior<TRequest, TResponse>> _logger;
+ private readonly IEnumerable<IValidator<TRequest>> _validators;
+ public ValidatorBehavior(IEnumerable<IValidator<TRequest>> validators, ILogger<ValidatorBehavior<TRequest, TResponse>> logger) { _validators = validators;
+ _logger = logger;}  public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken) { var typeName = request.GetGenericTypeName();
+ _logger.LogInformation("----- Validating command {CommandType}", typeName);
+ var failures = _validators
+ .Select(v => v.Validate(request))
+ .SelectMany(result => result.Errors)
+ .Where(error => error != null)
+ .ToList();
+ if (failures.Any()) { _logger.LogWarning("Validation errors - {CommandType} - Command: {@Command} - Errors: {@ValidationErrors}", typeName, request, failures);
+ throw new EstimatorDomainException(
+ $"Command Validation Errors for type {typeof(TRequest).Name}", new ValidationException("Validation exception", failures));}  return await next();} }
+
+namespace Estimator.Application.CommandHandlers { public class AddEstimatePhaseCommandHandler : IRequestHandler<AddEstimatePhaseCommand, bool> { private readonly IEstimateRepository _estimateRepository;
+ public AddEstimatePhaseCommandHandler(IEstimateRepository estimateRepository) { _estimateRepository = estimateRepository;}  public async Task<bool> Handle(AddEstimatePhaseCommand request, CancellationToken cancellationToken) { var estimate = await _estimateRepository.GetAsync(request.JobCode);
+ if (estimate == null) return false;
+ estimate.AddPhase(request.Phase);
+ _estimateRepository.Update(estimate);
+ await _estimateRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
+ return true;} } } 
+
+namespace Estimator.Application.CommandHandlers { public class CreateEstimateCommandHandler : IRequestHandler<CreateEstimateCommand, bool> { private readonly IEstimateRepository _estimateRepository;
+ public CreateEstimateCommandHandler(IEstimateRepository estimateRepository) { _estimateRepository = estimateRepository;}  public async Task<bool> Handle(CreateEstimateCommand request, CancellationToken cancellationToken) { var estimate = new Estimate(request.ClientName, request.JobCode, request.ProjectManager, request.RateCard);
+ _estimateRepository.Add(estimate);
+ await _estimateRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
+ return true;} } } 
+
+namespace Estimator.Application.CommandHandlers { public class CreateRateCardCommandHandler : IRequestHandler<CreateRateCardCommand, bool> { private readonly IRateCardRepository _rateCardRepository;
+ public CreateRateCardCommandHandler(IRateCardRepository rateCardRepository) { _rateCardRepository = rateCardRepository;}  public async Task<bool> Handle(CreateRateCardCommand request, CancellationToken cancellationToken) { _rateCardRepository.Add(request.RateCard);
+ return await _rateCardRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);} } } 
+
+namespace Estimator.Application.CommandHandlers { public class DeleteEstimateCommandHandler : IRequestHandler<DeleteEstimateCommand, bool> { private readonly IEstimateRepository _estimateRepository;
+ public DeleteEstimateCommandHandler(IEstimateRepository estimateRepository) { _estimateRepository = estimateRepository;}  public async Task<bool> Handle(DeleteEstimateCommand request, CancellationToken cancellationToken) { var estimate = await _estimateRepository.GetAsync(request.JobCode);
+ if (estimate == null) return false;
+ _estimateRepository.Delete(estimate);
+ await _estimateRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
+ return true;} } } 
+
+namespace Estimator.API.Application.CommandHandlers { public class DeleteEstimatePhaseCommandHandler : IRequestHandler<DeleteEstimatePhaseCommand, bool> { private readonly IEstimateRepository _estimateRepository;
+ public DeleteEstimatePhaseCommandHandler(IEstimateRepository estimateRepository) { _estimateRepository = estimateRepository;}  public async Task<bool> Handle(DeleteEstimatePhaseCommand request, CancellationToken cancellationToken) { var estimate = await _estimateRepository.GetAsync(request.JobCode);
+ if (estimate == null) return false;
+ estimate.DeletePhase(request.PhaseId);
+ _estimateRepository.Update(estimate);
+ await _estimateRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
+ return true;} } } 
+
+namespace Estimator.Application.CommandHandlers { public class DeleteRateCardCommandHandler : IRequestHandler<DeleteRateCardCommand, bool> { private readonly IRateCardRepository _rateCardRepository;
+ public DeleteRateCardCommandHandler(IRateCardRepository rateCardRepository) { _rateCardRepository = rateCardRepository;}  public async Task<bool> Handle(DeleteRateCardCommand request, CancellationToken cancellationToken) { var rateCard = await _rateCardRepository.GetAsync(request.RateCardId);
+ if (rateCard == null) return false;
+ _rateCardRepository.Delete(rateCard);
+ await _rateCardRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
+ return true;} } } 
+
+namespace Estimator.Application.CommandHandlers { public class UpdateEstimateCommandHandler : IRequestHandler<UpdateEstimateCommand, bool> { private readonly IEstimateRepository _estimateRepository;
+ public UpdateEstimateCommandHandler(IEstimateRepository estimateRepository) { _estimateRepository = estimateRepository;}  public async Task<bool> Handle(UpdateEstimateCommand request, CancellationToken cancellationToken) { var estimate = await _estimateRepository.GetAsync(request.JobCode);
+ if (estimate == null) return false;
+ estimate.UpdateRateCard(request.RateCard);
+ _estimateRepository.Update(estimate);
+ await _estimateRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
+ return true;} } } 
+
+namespace Estimator.Application.CommandHandlers { public class UpdateEstimatePhaseCommandHandler : IRequestHandler<UpdateEstimatePhaseCommand, bool> { private readonly IEstimateRepository _estimateRepository;
+ public UpdateEstimatePhaseCommandHandler(IEstimateRepository estimateRepository) { _estimateRepository = estimateRepository;}  public async Task<bool> Handle(UpdateEstimatePhaseCommand request, CancellationToken cancellationToken) { var estimate = await _estimateRepository.GetAsync(request.JobCode);
+ if (estimate == null) return false;
+ estimate.UpdatePhase(request.Phase);
+ _estimateRepository.Update(estimate);
+ await _estimateRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
+ return true;} } } 
+
+namespace Estimator.Application.CommandHandlers { public class UpdateRateCardCommandHandler : IRequestHandler<UpdateRateCardCommand, bool> { private readonly IRateCardRepository _rateCardRepository;
+ public UpdateRateCardCommandHandler(IRateCardRepository rateCardRepository) { _rateCardRepository = rateCardRepository;}  public async Task<bool> Handle(UpdateRateCardCommand request, CancellationToken cancellationToken) { _rateCardRepository.Update(request.RateCard);
+ return await _rateCardRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);} } } 
+
+namespace Estimator.Application.Commands { public class AddEstimatePhaseCommand : IRequest<bool> { public string JobCode { get;}  public EstimatePhase Phase { get;}  public AddEstimatePhaseCommand(string jobCode, EstimatePhase phase) { JobCode = jobCode;
+ Phase = phase;} } } 
+
+namespace Estimator.Application.Commands { public class CreateEstimateCommand : IRequest<bool> { public string ClientName { get;}  public string JobCode { get;}  public string ProjectManager { get;}  public RateCard RateCard { get;}  public CreateEstimateCommand(string clientName, string jobCode, string projectManager, RateCard rateCard) { ClientName = clientName;
+ JobCode = jobCode;
+ ProjectManager = projectManager;
+ RateCard = rateCard;} } } 
+
+namespace Estimator.Application.Commands { public class CreateRateCardCommand : IRequest<bool> { public RateCard RateCard { get;}  public CreateRateCardCommand(RateCard rateCard) { RateCard = rateCard;} } } 
+
+namespace Estimator.Application.Commands { public class DeleteEstimateCommand : IRequest<bool> { public string JobCode { get;}  public DeleteEstimateCommand(string jobCode) { JobCode = jobCode;} } } 
+
+namespace Estimator.Application.Commands { public class DeleteEstimatePhaseCommand : IRequest<bool> { public string JobCode { get;}  public int PhaseId { get;}  public DeleteEstimatePhaseCommand(string jobCode, int phaseId) { JobCode = jobCode;
+ PhaseId = phaseId;} } } 
+
+namespace Estimator.Application.Commands { public class DeleteRateCardCommand : IRequest<bool> { public int RateCardId { get;}  public DeleteRateCardCommand(int rateCardId) { RateCardId = rateCardId;} } } 
+
+namespace Estimator.Application.Commands { public class UpdateEstimateCommand : IRequest<bool> { public string JobCode { get;}  public RateCard RateCard { get;}  public UpdateEstimateCommand(string jobCode, RateCard rateCard) { JobCode = jobCode;
+ RateCard = rateCard;} } } 
+
+namespace Estimator.Application.Commands { public class UpdateEstimatePhaseCommand : IRequest<bool> { public string JobCode { get;}  public EstimatePhase Phase { get;}  public UpdateEstimatePhaseCommand(string jobCode, EstimatePhase phase) { JobCode = jobCode;
+ Phase = phase;} } } 
+
+namespace Estimator.Application.Commands { public class UpdateRateCardCommand : IRequest<bool> { public RateCard RateCard { get;}  public UpdateRateCardCommand(RateCard rateCard) { RateCard = rateCard;} } } 
+
+namespace Estimator.API.Application.IntegrationEvents { public class EstimatorIntegrationEventService: IEstimatorIntegrationEventService { private readonly Func<DbConnection, IIntegrationEventLogService> _integrationEventLogServiceFactory;
+ private readonly IEventBus _eventBus;
+ private readonly EstimatorContext _estimatorContext;
+ private readonly IIntegrationEventLogService _eventLogService;
+ private readonly ILogger<EstimatorIntegrationEventService> _logger;
+ public EstimatorIntegrationEventService(IEventBus eventBus,
+ EstimatorContext estimatorContext,
+ IntegrationEventLogContext eventLogContext,
+ Func<DbConnection, IIntegrationEventLogService> integrationEventLogServiceFactory,
+ ILogger<EstimatorIntegrationEventService> logger) { _estimatorContext = estimatorContext ?? throw new ArgumentNullException(nameof(estimatorContext));
+ _integrationEventLogServiceFactory = integrationEventLogServiceFactory ?? throw new ArgumentNullException(nameof(integrationEventLogServiceFactory));
+ _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+ _eventLogService = _integrationEventLogServiceFactory(_estimatorContext.Database.GetDbConnection());
+ _logger = logger ?? throw new ArgumentNullException(nameof(logger));}  public async Task PublishEventsThroughEventBusAsync(Guid transactionId) { var pendingLogEvents = await _eventLogService.RetrieveEventLogsPendingToPublishAsync(transactionId);
+ foreach (var logEvt in pendingLogEvents) { _logger.LogInformation("----- Publishing integration event: {IntegrationEventId} from {AppName} - ({@IntegrationEvent})", logEvt.EventId, Program.AppName, logEvt.IntegrationEvent);
+ try { await _eventLogService.MarkEventAsInProgressAsync(logEvt.EventId);
+ _eventBus.Publish(logEvt.IntegrationEvent);
+ await _eventLogService.MarkEventAsPublishedAsync(logEvt.EventId);}  catch (Exception ex) { _logger.LogError(ex, "ERROR publishing integration event: {IntegrationEventId} from {AppName}", logEvt.EventId, Program.AppName);
+ await _eventLogService.MarkEventAsFailedAsync(logEvt.EventId);} } }  public async Task AddAndSaveEventAsync(IntegrationEvent evt) { _logger.LogInformation("----- Enqueuing integration event {IntegrationEventId} to repository ({@IntegrationEvent})", evt.Id, evt);
+ await _eventLogService.SaveEventAsync(evt, _estimatorContext.GetCurrentTransaction());} } } 
+
+namespace Estimator.API.Application.IntegrationEvents { public interface IEstimatorIntegrationEventService { Task PublishEventsThroughEventBusAsync(Guid transactionId);
+ Task AddAndSaveEventAsync(IntegrationEvent evt);} } 
+
+namespace Estimator.API.Application.Models { public class EstimatePhase {} } 
+
+namespace Estimator.API.Models { public class RateCardItem { public int Id { get; set;}  public string Name { get; set;}  public string Description { get; set;}  public decimal Price { get; set;}  public string PictureFileName { get; set;}  public string PictureUri { get; set;}  public RateCardItem (){} } } 
+
+namespace Estimator.API.Application.DomainEventHandlers.Estimate { public class EstimateCreatedDomainEventHandler : INotificationHandler<EstimateCreatedDomainEvent> { public async Task Handle(EstimateCreatedDomainEvent notification, CancellationToken cancellationToken) {} } } 
+
+namespace Estimator.API.Application.DomainEventHandlers.Estimate { public class EstimatePhaseAddedDomainEventHandler : INotificationHandler<EstimatePhaseAddedDomainEvent> { public async Task Handle(EstimatePhaseAdded notification, CancellationToken cancellationToken) {} } } 
+
+namespace Estimator.API.Application.DomainEventHandlers.RateCard { public class RateCardCreatedDomainEventHandler : INotificationHandler<RateCardCreated> { public async Task Handle(RateCardCreated notification, CancellationToken cancellationToken) {} } } 
+
+namespace Estimator.API.Application.DomainEventHandlers.RateCard { public class RateCardItemAddedDomainEventHandler : INotificationHandler<RateCardItemAdded> { public async Task Handle(RateCardItemAdded notification, CancellationToken cancellationToken) {} } } 
