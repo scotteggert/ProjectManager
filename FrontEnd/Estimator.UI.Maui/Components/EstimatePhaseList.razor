@@ -50,13 +50,15 @@
         <button class="btn" @onclick="ShowEstimatePhases">Show Estimate Phases</button>
     </div>
     <div class="row" hidden="@_hidePhase">
-        <EstimatePhase />
+        <EstimatePhase OnPhaseSaved="HandlePhaseSaved" OnPhaseDeleted="HandlePhaseDeleted" />
     </div>
 </div>
 
 @code {
     [Parameter]
     public Estimator.UI.Model.Estimate? estimate { get; set; } = new Estimator.UI.Model.Estimate();
+
+
 
     [CascadingParameter]
     public Error? Error { get; set; }
@@ -96,6 +98,32 @@
     {
         _hideList = false;
         _hidePhase = true;
+    }
+
+
+
+    private void HandlePhaseSaved(Model.EstimatePhase phase)
+    {
+        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Name == phase.Name);
+        if (findPhase != null)
+        {
+            findPhase.Name = phase.Name;
+            findPhase.Description = phase.Description;
+            findPhase.RateCardItems = phase.RateCardItems;
+        }
+        else
+        {
+            estimate.EstimatePhases.Add(phase);
+        }
+    }
+
+    private void HandlePhaseDeleted(Model.EstimatePhase phase)
+    {
+        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Id == phase.Id);
+        if (findPhase != null)
+        {
+            estimate.EstimatePhases.Remove(findPhase);
+        }
     }
 
 
