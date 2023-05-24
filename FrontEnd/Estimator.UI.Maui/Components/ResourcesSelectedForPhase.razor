@@ -1,5 +1,131 @@
-﻿<h3>ResourcesSelectedForPhase</h3>
+﻿@using Microsoft.Extensions.Logging
+@inject Estimator.UI.Services.RateCard rateCardService
+@inject ILogger<Error> Logger
+
+<h3>Select Resources For This Phase</h3>
+
+<h4>Estimate Phase Rate Card Items</h4>
+<table class="table">
+    <tr>
+        <td>
+            <p>Resources for this Phase</p>
+            <table>
+                @foreach (var item in phase.EstimatePhaseRateCardItems)
+                {
+                    <tr>
+                        <td>
+                            @item.RateCardItem.RoleName - @item.RateCardItem.Rate (@item.Count at @item.PercentageUtilized%)
+                        </td>
+                        <td>
+                            <button @onclick="@(e => EditItem(item))">Edit</button>
+                            <button @onclick="@(e => DeleteItem(item))">Remove</button>
+                        </td>
+                    </tr>
+                }
+            </table>
+        </td>
+        <td>
+            <p>All Resources</p>
+            <table>
+                @foreach (var item in rateCard.RateCardItems.OrderBy(p => p.GroupName).ThenByDescending(p => p.Rate))
+                {
+                    <tr>
+                        <td>
+                            @item.RoleName - @item.Rate
+                        </td>
+                        <td>
+                            <button @onclick="@(e => AddItem(item))">Add</button>
+                        </td>
+                    </tr>
+                }
+            </table>
+        </td>
+    </tr>
+</table>
+<table class="table">
+    <tr>
+        <td>Count</td>
+        <td>
+            <InputNumber @bind-Value="currentItem.Count"></InputNumber>
+        </td>
+    </tr>
+    <tr>
+        <td>% Utilization</td>
+        <td>
+            <InputNumber @bind-Value="currentItem.PercentageUtilized"></InputNumber>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2">
+            <button @onclick="SaveItem">Save Item</button>
+            <button @onclick="@(e => DeleteItem(currentItem))">Delete Item</button>
+        </td>
+    </tr>
+</table>
+
 
 @code {
+    [Parameter]
+    public Estimator.UI.Model.EstimatePhase phase { get; set; }
 
+    [Parameter]
+    public Estimator.UI.Model.RateCard rateCard { get; set; } 
+
+    [Parameter]
+    public EventCallback<Estimator.UI.Model.EstimatePhaseRateCardItem> OnItemSaved { get; set; }
+
+    [Parameter]
+    public EventCallback<Estimator.UI.Model.EstimatePhaseRateCardItem> OnItemDeleted { get; set; }
+
+    private Estimator.UI.Model.EstimatePhaseRateCardItem currentItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
+
+    [CascadingParameter]
+    public Error? Error { get; set; }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Logger.LogInformation("In ResourcesSelectedForPhase Component");
+            rateCard = rateCardService.GetRateCard();
+            //if (estimate == null)
+            //{
+            //    estimate = new Estimator.UI.Model.Estimate();
+            //}
+            //editContext = new EditContext(estimate);
+
+            //editContext.OnFieldChanged += EditContext_OnFieldChanged;
+        }
+        catch (Exception ex)
+        {
+            Error?.ProcessError(ex);
+        }
+
+    }
+
+
+
+
+
+    private void EditItem(Estimator.UI.Model.EstimatePhaseRateCardItem item)
+    {
+        currentItem = item;
+    }
+
+    private void AddItem(Estimator.UI.Model.RateCardItem rateCardItem)
+    {
+        var item = new Estimator.UI.Model.EstimatePhaseRateCardItem();
+
+        phase.EstimatePhaseRateCardItems.Add(new Estimator.UI.Model.EstimatePhaseRateCardItem());
+    }
+
+    private void SaveItem()
+    {
+
+    }
+
+    private void DeleteItem(Estimator.UI.Model.EstimatePhaseRateCardItem item)
+    {
+        
+    }
 }

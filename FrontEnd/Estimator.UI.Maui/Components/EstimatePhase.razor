@@ -21,13 +21,14 @@
     <tr>
         <td>Resources for this Phase</td>
         <td>
+            <ResourcesSelectedForPhase phase="@phase" />
         </td>
     </tr>
 </table>
 
 @code {
     [Parameter]
-    public Estimator.UI.Model.EstimatePhase phase { get; set; } = new Estimator.UI.Model.EstimatePhase();
+    public Estimator.UI.Model.EstimatePhase phase { get; set; } 
 
     [Parameter]
     public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseSaved { get; set; }
@@ -44,6 +45,7 @@
 
     private async Task DeletePhase()
     {
+        
         await OnPhaseDeleted.InvokeAsync(phase);
     }
 }

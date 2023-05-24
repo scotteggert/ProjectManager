@@ -26,7 +26,7 @@
                     @foreach (var estimate in _estimates)
                     {
                         <tr>
-                            <td>@estimate.ClientName </td>
+                            <td>@estimate.ClientName</td>
                             <td>@estimate.JobCode</td>
                             <td>@estimate.ProjectManager</td>
                             <td>@estimate.EstimatedStartDate</td>
@@ -51,7 +51,7 @@
     private bool _hideList { get; set; } = false;
     private bool _hideEstimate { get; set; } = true;
 
-    private Estimator.UI.Model.Estimate _currentEstimate = null;
+    private Estimator.UI.Model.Estimate _currentEstimate = new Estimator.UI.Model.Estimate();
 
     protected override void OnInitialized()
     {

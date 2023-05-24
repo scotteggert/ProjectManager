@@ -23,10 +23,8 @@
         <label>Estimate Date</label>
         <InputDate class="form-control" @bind-Value="estimate.EstimatedStartDate" />
     </div>
-    <button type="submit" class="btn btn-primary" @onclick="SaveEstimate">Save Estimate</button>
-
     <div>
-        <EstimatePhaseList estimate="estimate" />
+        <EstimatePhaseList estimatePhases="@estimate.EstimatePhases" OnPhaseSaved="HandlePhaseSaved" OnPhaseDeleted="HandlePhaseDeleted" />
     </div>
 
 
@@ -41,13 +39,13 @@
     public string estimateId { get; set; } = string.Empty;
 
     [Parameter]
-    public Estimator.UI.Model.Estimate? estimate { get; set; } = new Estimator.UI.Model.Estimate();
+    public Estimator.UI.Model.Estimate estimate { get; set; } = new Estimator.UI.Model.Estimate();
 
-    [Parameter]
-    public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseSaved { get; set; }
+    //[Parameter]
+    //public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseSaved { get; set; }
 
-    [Parameter]
-    public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseDeleted { get; set; }
+    //[Parameter]
+    //public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseDeleted { get; set; }
 
 
 
@@ -65,7 +63,7 @@
             }
             editContext = new EditContext(estimate);
 
-            editContext.OnFieldChanged += EditContext_OnFieldChanged;
+            //editContext.OnFieldChanged += EditContext_OnFieldChanged;
         }
         catch (Exception ex)
         {
@@ -74,17 +72,17 @@
 
     }
 
-    private void EditContext_OnFieldChanged(object? sender, FieldChangedEventArgs e)
-    {
-        try
-        {
-            Logger.LogInformation("Hey Hey");
-        }
-        catch (Exception ex)
-        {
-            Error?.ProcessError(ex);
-        }
-    }
+    //private void EditContext_OnFieldChanged(object? sender, FieldChangedEventArgs e)
+    //{
+    //    try
+    //    {
+    //        Logger.LogInformation("Hey Hey");
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        Error?.ProcessError(ex);
+    //    }
+    //}
 
     private async Task SaveEstimate()
     {
@@ -94,5 +92,28 @@
         }
     }
 
+    private void HandlePhaseSaved(Model.EstimatePhase phase)
+    {
+        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Name == phase.Name);
+        if (findPhase != null)
+        {
+            findPhase.Name = phase.Name;
+            findPhase.Description = phase.Description;
+            findPhase.EstimatePhaseRateCardItems = phase.EstimatePhaseRateCardItems;
+        }
+        else
+        {
+            estimate.EstimatePhases.Add(phase);
+        }
+    }
+
+    private void HandlePhaseDeleted(Model.EstimatePhase phase)
+    {
+        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Id == phase.Id);
+        if (findPhase != null)
+        {
+            estimate.EstimatePhases.Remove(findPhase);
+        }
+    }
 
 }

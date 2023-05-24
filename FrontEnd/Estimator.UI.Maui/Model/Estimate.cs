@@ -7,9 +7,9 @@
         public string ProjectManager { get; set; }
         public RateCard RateCard { get; set; }
         public List<EstimatePhase> EstimatePhases { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public DateTime EstimatedStartDate { get; set; }
-        public DateTime EstimatedEndDate { get; set; }
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime EstimatedStartDate { get; set; } = DateTime.UtcNow;
+        public DateTime EstimatedEndDate { get; set; } = DateTime.UtcNow.AddDays(5);
 
         public Estimate() {
             EstimatePhases = new List<EstimatePhase>();

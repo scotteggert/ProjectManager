@@ -16,21 +16,21 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var phase in estimate.EstimatePhases)
+                    @foreach (var phase in estimatePhases)
                     {
                         <tr>
                             <td>
                                 <div>@phase.Name</div>
                                 <div>
-                                    <h5>Staff Types Required</h5>
-                                    @foreach(var rci in phase.RateCardItems)
+                                    <h6>Staff Types Required</h6>
+                                    <div class="row">
+                                        <div class="col-2">Role Name</div>
+                                        <div class="col-2">Rate</div>
+                                        <div class="col-2">Number</div>
+                                        <div class="col-2">% Utilized</div>
+                                    </div>
+                                    @foreach (var rci in phase.EstimatePhaseRateCardItems)
                                     {
-                                        <div class="row">
-                                            <div class="col-2">Role Name</div>
-                                            <div class="col-2">Rate</div>
-                                            <div class="col-2">Number</div>
-                                            <div class="col-2">% Utilized</div>
-                                        </div>
                                         <div class="row">
                                             <div class="col-2">@rci.RateCardItem.RoleName</div>
                                             <div class="col-2">@rci.RateCardItem.Rate</div>
@@ -50,36 +50,33 @@
         <button class="btn" @onclick="ShowEstimatePhases">Show Estimate Phases</button>
     </div>
     <div class="row" hidden="@_hidePhase">
-        <EstimatePhase OnPhaseSaved="HandlePhaseSaved" OnPhaseDeleted="HandlePhaseDeleted" />
+        <EstimatePhase phase="@currentPhase" OnPhaseSaved="HandlePhaseSaved" OnPhaseDeleted="HandlePhaseDeleted" />
     </div>
 </div>
 
 @code {
     [Parameter]
-    public Estimator.UI.Model.Estimate? estimate { get; set; } = new Estimator.UI.Model.Estimate();
+    public List<Estimator.UI.Model.EstimatePhase> estimatePhases { get; set; } // = new Estimator.UI.Model.Estimate();
 
+    [Parameter]
+    public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseSaved { get; set; }
 
+    [Parameter]
+    public EventCallback<Estimator.UI.Model.EstimatePhase> OnPhaseDeleted { get; set; }
 
     [CascadingParameter]
     public Error? Error { get; set; }
 
-
     private bool _hideList { get; set; } = false;
-    private bool _hidePhase { get; set; } = true;
+    private bool _hidePhase { get; set; } = false;
 
+    private Estimator.UI.Model.EstimatePhase currentPhase { get; set; } = new Estimator.UI.Model.EstimatePhase();
 
     protected override void OnInitialized()
     {
         try
         {
             Logger.LogInformation("In Estimate Phase List Component");
-            //if (estimate == null)
-            //{
-            //    estimate = new Estimator.UI.Model.Estimate();
-            //}
-            //editContext = new EditContext(estimate);
-
-            //editContext.OnFieldChanged += EditContext_OnFieldChanged;
         }
         catch (Exception ex)
         {
@@ -89,41 +86,30 @@
 
     private void CreateNewPhase()
     {
-        _hideList = true;
-        _hidePhase = false;
+        currentPhase = new Estimator.UI.Model.EstimatePhase();
 
+        _hideList = false;
+        _hidePhase = false;
     }
 
     private void ShowEstimatePhases()
     {
         _hideList = false;
-        _hidePhase = true;
+        _hidePhase = false;
     }
 
 
 
-    private void HandlePhaseSaved(Model.EstimatePhase phase)
+    private async Task HandlePhaseSaved(Model.EstimatePhase phase)
     {
-        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Name == phase.Name);
-        if (findPhase != null)
-        {
-            findPhase.Name = phase.Name;
-            findPhase.Description = phase.Description;
-            findPhase.RateCardItems = phase.RateCardItems;
-        }
-        else
-        {
-            estimate.EstimatePhases.Add(phase);
-        }
+        estimatePhases.Add(phase);
+        await OnPhaseSaved.InvokeAsync(phase);
     }
 
-    private void HandlePhaseDeleted(Model.EstimatePhase phase)
+    private async Task HandlePhaseDeleted(Model.EstimatePhase phase)
     {
-        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Id == phase.Id);
-        if (findPhase != null)
-        {
-            estimate.EstimatePhases.Remove(findPhase);
-        }
+        estimatePhases.Remove(phase);
+        await OnPhaseDeleted.InvokeAsync(phase);
     }
 
 
