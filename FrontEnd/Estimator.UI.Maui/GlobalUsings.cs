@@ -1,4 +1,5 @@
-﻿global using Estimator.UI.Model;
+﻿global using Estimator.UI.Maui.Helpers;
+global using Estimator.UI.Model;
 global using Estimator.UI.ViewModel;
 global using Estimator.UI.Services;
 

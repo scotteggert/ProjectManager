@@ -1,10 +1,10 @@
 ﻿@using Microsoft.Extensions.Logging
 @inject ILogger<Error> Logger
 
-<h5>Estimate Phases</h5>
-<div class="container">
-    <div class="row" hidden="@_hideList">
-        <button class="btn" @onclick="CreateNewPhase">Create New Phase</button>
+<div class="container" style="margin-left:1em;margin-top:.5em;">
+    <h5>Estimate Phases</h5>
+    <div class="row" hidden="@_hideList" @onclick="CreateNewPhase">
+        <span><span class="oi oi-plus" aria-hidden="true"></span> Create New Phase</span>
     </div>
     <div class="row" hidden="@_hideList">
         <div class="col-md-12">
@@ -20,7 +20,7 @@
                     {
                         <tr>
                             <td>
-                                <div>@phase.Name</div>
+                                <div @onclick="(e=>SelectPhase(phase))">@phase.Name</div>
                                 <div>
                                     <h6>Staff Types Required</h6>
                                     <div class="row">
@@ -46,8 +46,8 @@
             </table>
         </div>
     </div>
-    <div class="row" hidden="@_hidePhase">
-        <button class="btn" @onclick="ShowEstimatePhases">Show Estimate Phases</button>
+    <div class="row" hidden="@_hidePhase" @onclick="ShowEstimatePhases">
+        <span><span class="oi oi-list" aria-hidden="true"></span> Show Phases</span>
     </div>
     <div class="row" hidden="@_hidePhase">
         <EstimatePhase phase="@currentPhase" OnPhaseSaved="HandlePhaseSaved" OnPhaseDeleted="HandlePhaseDeleted" />
@@ -68,7 +68,7 @@
     public Error? Error { get; set; }
 
     private bool _hideList { get; set; } = false;
-    private bool _hidePhase { get; set; } = false;
+    private bool _hidePhase { get; set; } = true;
 
     private Estimator.UI.Model.EstimatePhase currentPhase { get; set; } = new Estimator.UI.Model.EstimatePhase();
 
@@ -84,25 +84,43 @@
         }
     }
 
+    private void SelectPhase(Estimator.UI.Model.EstimatePhase phase)
+    {
+        currentPhase = phase;
+        _hideList = true;
+        _hidePhase = false;
+    }
+
+
     private void CreateNewPhase()
     {
         currentPhase = new Estimator.UI.Model.EstimatePhase();
+        currentPhase.Id = Incrementor.Next();
 
-        _hideList = false;
+        _hideList = true;
         _hidePhase = false;
     }
 
     private void ShowEstimatePhases()
     {
         _hideList = false;
-        _hidePhase = false;
+        _hidePhase = true;
     }
 
 
 
     private async Task HandlePhaseSaved(Model.EstimatePhase phase)
     {
+        if (phase.Id == 0)
+        {
+            phase.Id = Incrementor.Next();
+        }
+        if (estimatePhases.Exists(p=>p.Id == phase.Id))
+        {
+            estimatePhases.Remove(phase);
+        }
         estimatePhases.Add(phase);
+
         await OnPhaseSaved.InvokeAsync(phase);
     }
 
@@ -110,6 +128,8 @@
     {
         estimatePhases.Remove(phase);
         await OnPhaseDeleted.InvokeAsync(phase);
+        currentPhase = new Estimator.UI.Model.EstimatePhase();
+
     }
 
 

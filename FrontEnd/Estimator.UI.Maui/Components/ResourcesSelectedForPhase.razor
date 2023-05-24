@@ -1,67 +1,63 @@
-﻿@using Microsoft.Extensions.Logging
-@inject Estimator.UI.Services.RateCard rateCardService
+﻿<h3>Select Resources For This Phase</h3>
+@using Microsoft.Extensions.Logging
+@inject Estimator.UI.Services.IRateCard rateCardService
 @inject ILogger<Error> Logger
 
-<h3>Select Resources For This Phase</h3>
 
-<h4>Estimate Phase Rate Card Items</h4>
-<table class="table">
-    <tr>
-        <td>
-            <p>Resources for this Phase</p>
-            <table>
-                @foreach (var item in phase.EstimatePhaseRateCardItems)
-                {
-                    <tr>
-                        <td>
-                            @item.RateCardItem.RoleName - @item.RateCardItem.Rate (@item.Count at @item.PercentageUtilized%)
-                        </td>
-                        <td>
-                            <button @onclick="@(e => EditItem(item))">Edit</button>
-                            <button @onclick="@(e => DeleteItem(item))">Remove</button>
-                        </td>
-                    </tr>
-                }
-            </table>
-        </td>
-        <td>
+<h5>Estimate Phase Rate Card Items</h5>
+<div>
+    <p>Resources for this Phase</p>
+@foreach (var item in phase.EstimatePhaseRateCardItems)
+{
+    <div>
+        <span @onclick="@(e => EditItem(item))">@item.RateCardItem.RoleName - @item.RateCardItem.Rate (@item.Count at @item.PercentageUtilized%)</span>
+        <span @onclick="@(e => RemoveItem(item))" style="padding-left:1em;"><span class="oi oi-x" aria-hidden="true"></span> Remove</span>
+    </div>
+}
+</div>
+<div class="row">
+    <div class="col-6">
+        <div>
             <p>All Resources</p>
-            <table>
-                @foreach (var item in rateCard.RateCardItems.OrderBy(p => p.GroupName).ThenByDescending(p => p.Rate))
-                {
-                    <tr>
-                        <td>
-                            @item.RoleName - @item.Rate
-                        </td>
-                        <td>
-                            <button @onclick="@(e => AddItem(item))">Add</button>
-                        </td>
-                    </tr>
-                }
-            </table>
-        </td>
-    </tr>
-</table>
-<table class="table">
-    <tr>
-        <td>Count</td>
-        <td>
-            <InputNumber @bind-Value="currentItem.Count"></InputNumber>
-        </td>
-    </tr>
-    <tr>
-        <td>% Utilization</td>
-        <td>
-            <InputNumber @bind-Value="currentItem.PercentageUtilized"></InputNumber>
-        </td>
-    </tr>
-    <tr>
-        <td colspan="2">
-            <button @onclick="SaveItem">Save Item</button>
-            <button @onclick="@(e => DeleteItem(currentItem))">Delete Item</button>
-        </td>
-    </tr>
-</table>
+            @foreach (var item in rateCard.RateCardItems.OrderBy(p => p.GroupName).ThenByDescending(p => p.Rate))
+            {
+                <div @onclick="@(e => AddItem(item))">@item.RoleName - @item.Rate</div>
+            }
+        </div>
+    </div>
+    <div class="col-6">
+        <p>Rate Card Item</p>
+        <h5>@currentItem.RateCardItem?.RoleName</h5>
+        <div class="container">
+            <div class="row">
+                <div class="col-6">
+                    <span>Count</span>
+                </div>
+                <div class="col-4">
+                    <InputNumber style="width: 3em;" @bind-Value="currentItem.Count"></InputNumber>
+                </div>
+
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <span>% Utilization</span>
+                </div>
+                <div class="col-4">
+                    <InputNumber style="width: 4em;" @bind-Value="currentItem.PercentageUtilized"></InputNumber>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <span @onclick="SaveItem"><span class="oi oi-check" aria-hidden="true"></span> Save </span>
+                </div>
+                <div class="col-6">
+                    <span @onclick="DeleteCurrentItem"><span class="oi oi-x" aria-hidden="true"></span> Delete</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 
 @code {
@@ -114,18 +110,33 @@
 
     private void AddItem(Estimator.UI.Model.RateCardItem rateCardItem)
     {
-        var item = new Estimator.UI.Model.EstimatePhaseRateCardItem();
+        currentItem.RateCardItem = rateCardItem;
+    }
 
-        phase.EstimatePhaseRateCardItems.Add(new Estimator.UI.Model.EstimatePhaseRateCardItem());
+    private void RemoveItem(Estimator.UI.Model.EstimatePhaseRateCardItem item)
+    {
+        if (phase.EstimatePhaseRateCardItems.Exists(p => p == item))
+        {
+            phase.EstimatePhaseRateCardItems.Remove(item);
+
+        }
     }
 
     private void SaveItem()
     {
+        phase.EstimatePhaseRateCardItems.Add(currentItem);
+        currentItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
 
     }
 
-    private void DeleteItem(Estimator.UI.Model.EstimatePhaseRateCardItem item)
+    private void DeleteCurrentItem()
     {
-        
+        if (phase.EstimatePhaseRateCardItems.Exists(p=> p == currentItem))
+        {
+            phase.EstimatePhaseRateCardItems.Remove(currentItem);
+
+        }
+        currentItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
+
     }
 }

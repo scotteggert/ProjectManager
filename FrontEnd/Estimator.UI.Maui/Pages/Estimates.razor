@@ -7,8 +7,8 @@
 
 <h3>Estimates</h3>
 <div class="container">
-    <div class="row" hidden="@_hideList">
-        <button class="btn" @onclick="CreateNewEstimate">Create New Estimate</button>
+    <div class="row" hidden="@_hideList" @onclick="CreateNewEstimate">
+        <span><span class="oi oi-plus" aria-hidden="true"></span> Create New Estimate</span>
     </div>
     <div class="row" hidden="@_hideList">
         <div class="col-md-12">
@@ -26,7 +26,7 @@
                     @foreach (var estimate in _estimates)
                     {
                         <tr>
-                            <td>@estimate.ClientName</td>
+                            <td @onclick="(e=>SelectEstimate(estimate))">@estimate.ClientName</td>
                             <td>@estimate.JobCode</td>
                             <td>@estimate.ProjectManager</td>
                             <td>@estimate.EstimatedStartDate</td>
@@ -37,8 +37,8 @@
             </table>
         </div>
     </div>
-    <div class="row" hidden="@_hideEstimate">
-        <button class="btn" @onclick="ShowEstimates">Show Estimates</button>
+    <div class="row" hidden="@_hideEstimate" @onclick="ShowEstimates">
+        <span><span class="oi oi-list" aria-hidden="true"></span> Show Estimates</span>
     </div>
     <div class="row" hidden="@_hideEstimate">
         <Estimator.UI.Maui.Components.Estimate estimate="@_currentEstimate"></Estimator.UI.Maui.Components.Estimate>
@@ -73,7 +73,13 @@
     {
         _hideList = false;
         _hideEstimate = true;
-        _currentEstimate = null;
+        _currentEstimate = new Estimator.UI.Model.Estimate();
     }
 
+    private void SelectEstimate(Estimator.UI.Model.Estimate estimate)
+    {
+        _currentEstimate = estimate;
+        _hideList = true;
+        _hideEstimate = false;
+    }
 }

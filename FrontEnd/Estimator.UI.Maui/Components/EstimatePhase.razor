@@ -1,4 +1,4 @@
-﻿<h3>Estimate Phase</h3>
+﻿<h5>Phase Details</h5>
 <table class="table">
     <tr>
         <td>Phase Name</td>
@@ -14,17 +14,12 @@
     </tr>
     <tr>
         <td colspan="2">
-            <button @onclick="SavePhase">Save Phase</button>
-            <button @onclick="DeletePhase">Delete Phase</button>
-        </td>
-    </tr>
-    <tr>
-        <td>Resources for this Phase</td>
-        <td>
-            <ResourcesSelectedForPhase phase="@phase" />
+            <span @onclick="SavePhase"><span class="oi oi-check" aria-hidden="true"></span> Save </span>
+            <span @onclick="DeletePhase"><span class="oi oi-x" aria-hidden="true"></span> Delete</span>
         </td>
     </tr>
 </table>
+<ResourcesSelectedForPhase phase="@phase" />
 
 @code {
     [Parameter]

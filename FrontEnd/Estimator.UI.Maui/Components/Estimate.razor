@@ -1,5 +1,4 @@
-﻿<h3>Estimate</h3>
-@using Microsoft.Extensions.Logging
+﻿@using Microsoft.Extensions.Logging
 @using Estimator.UI.Maui.Components
 @inject ILogger<Error> Logger
 
@@ -24,7 +23,7 @@
         <InputDate class="form-control" @bind-Value="estimate.EstimatedStartDate" />
     </div>
     <div>
-        <EstimatePhaseList estimatePhases="@estimate.EstimatePhases" OnPhaseSaved="HandlePhaseSaved" OnPhaseDeleted="HandlePhaseDeleted" />
+        <EstimatePhaseList estimatePhases="@estimate.EstimatePhases"/>
     </div>
 
 
@@ -72,18 +71,6 @@
 
     }
 
-    //private void EditContext_OnFieldChanged(object? sender, FieldChangedEventArgs e)
-    //{
-    //    try
-    //    {
-    //        Logger.LogInformation("Hey Hey");
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Error?.ProcessError(ex);
-    //    }
-    //}
-
     private async Task SaveEstimate()
     {
         if (editContext != null && editContext.Validate())
@@ -92,28 +79,28 @@
         }
     }
 
-    private void HandlePhaseSaved(Model.EstimatePhase phase)
-    {
-        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Name == phase.Name);
-        if (findPhase != null)
-        {
-            findPhase.Name = phase.Name;
-            findPhase.Description = phase.Description;
-            findPhase.EstimatePhaseRateCardItems = phase.EstimatePhaseRateCardItems;
-        }
-        else
-        {
-            estimate.EstimatePhases.Add(phase);
-        }
-    }
+    //private void HandlePhaseSaved(Model.EstimatePhase phase)
+    //{
+    //    var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Name == phase.Name);
+    //    if (findPhase != null)
+    //    {
+    //        findPhase.Name = phase.Name;
+    //        findPhase.Description = phase.Description;
+    //        findPhase.EstimatePhaseRateCardItems = phase.EstimatePhaseRateCardItems;
+    //    }
+    //    else
+    //    {
+    //        estimate.EstimatePhases.Add(phase);
+    //    }
+    //}
 
-    private void HandlePhaseDeleted(Model.EstimatePhase phase)
-    {
-        var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Id == phase.Id);
-        if (findPhase != null)
-        {
-            estimate.EstimatePhases.Remove(findPhase);
-        }
-    }
+    //private void HandlePhaseDeleted(Model.EstimatePhase phase)
+    //{
+    //    var findPhase = estimate.EstimatePhases.FirstOrDefault(p => p.Id == phase.Id);
+    //    if (findPhase != null)
+    //    {
+    //        estimate.EstimatePhases.Remove(findPhase);
+    //    }
+    //}
 
 }
