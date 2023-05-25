@@ -6,24 +6,26 @@
 <EditForm EditContext="@editContext">
     <DataAnnotationsValidator />
     <ValidationSummary />
-    <div class="form-group">
-        <label>Client Name</label>
-        <InputText class="form-control" @bind-Value="estimate.ClientName" />
-    </div>
-    <div class="form-group">
-        <label>Job Code</label>
-        <InputText class="form-control" @bind-Value="estimate.JobCode" />
-    </div>
-    <div class="form-group">
-        <label>Project Manager</label>
-        <InputText class="form-control" @bind-Value="estimate.ProjectManager" />
-    </div>
-    <div class="form-group">
-        <label>Estimate Date</label>
-        <InputDate class="form-control" @bind-Value="estimate.EstimatedStartDate" />
+    <div style="background-color:#eeeeee;padding:.3em;">
+        <div class="form-group">
+            <label>Client Name</label>
+            <InputText class="form-control" @bind-Value="estimate.ClientName" />
+        </div>
+        <div class="form-group">
+            <label>Job Code</label>
+            <InputText class="form-control" @bind-Value="estimate.JobCode" />
+        </div>
+        <div class="form-group">
+            <label>Project Manager</label>
+            <InputText class="form-control" @bind-Value="estimate.ProjectManager" />
+        </div>
+        <div class="form-group">
+            <label>Estimate Date</label>
+            <InputDate class="form-control" @bind-Value="estimate.EstimatedStartDate" />
+        </div>
     </div>
     <div>
-        <EstimatePhaseList estimatePhases="@estimate.EstimatePhases"/>
+        <EstimatePhaseList estimatePhases="@estimate.EstimatePhases" />
     </div>
 
 

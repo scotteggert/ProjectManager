@@ -7,7 +7,7 @@
         //public EstimatePhase EstimatePhase { get; init; }
         //public Guid RateCardItemId { get; init; }
         public RateCardItem RateCardItem { get; set; } //
-        public int Count { get; set; }
-        public int PercentageUtilized { get; set; }
+        public int Count { get; set; } = 1;
+        public int PercentageUtilized { get; set; } = 100;
     }
 }

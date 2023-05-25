@@ -3,12 +3,11 @@
 
 <div class="container" style="margin-left:1em;margin-top:.5em;">
     <h5>Estimate Phases</h5>
-    <div class="row" hidden="@_hideList" @onclick="CreateNewPhase">
+    <div class="row"  @onclick="CreateNewPhase">
         <span><span class="oi oi-plus" aria-hidden="true"></span> Create New Phase</span>
     </div>
     <div class="row" hidden="@_hideList">
         <div class="col-md-12">
-            <h4>Phases</h4>
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -20,20 +19,20 @@
                     {
                         <tr>
                             <td>
-                                <div @onclick="(e=>SelectPhase(phase))">@phase.Name</div>
-                                <div>
-                                    <h6>Staff Types Required</h6>
+                                <div @onclick="(e=>SelectPhase(phase))">@phase.Name - (@phase.LengthInWeeks weeks)</div>
+                                <div>@phase.Description</div>
+                                <div style="background-color:#eeeeee;padding:.2em;">
                                     <div class="row">
-                                        <div class="col-2">Role Name</div>
-                                        <div class="col-2">Rate</div>
+                                        <div class="col-7">Role Name</div>
+                                        <div class="col-1">Rate</div>
                                         <div class="col-2">Number</div>
                                         <div class="col-2">% Utilized</div>
                                     </div>
                                     @foreach (var rci in phase.EstimatePhaseRateCardItems)
                                     {
                                         <div class="row">
-                                            <div class="col-2">@rci.RateCardItem.RoleName</div>
-                                            <div class="col-2">@rci.RateCardItem.Rate</div>
+                                            <div class="col-7">@rci.RateCardItem.RoleName</div>
+                                            <div class="col-1">@rci.RateCardItem.Rate</div>
                                             <div class="col-2">@rci.Count</div>
                                             <div class="col-2">@rci.PercentageUtilized</div>
                                         </div>
@@ -77,6 +76,11 @@
         try
         {
             Logger.LogInformation("In Estimate Phase List Component");
+            if (estimatePhases.Count == 0)
+            {
+                CreateNewPhase();
+
+            }
         }
         catch (Exception ex)
         {

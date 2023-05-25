@@ -1,24 +1,34 @@
-﻿<h5>Phase Details</h5>
-<table class="table">
-    <tr>
-        <td>Phase Name</td>
-        <td>
-            <InputText @bind-Value="phase.Name"></InputText>
-        </td>
-    </tr>
-    <tr>
-        <td>Description</td>
-        <td>
-            <InputText @bind-Value="phase.Description"></InputText>
-        </td>
-    </tr>
-    <tr>
-        <td colspan="2">
-            <span @onclick="SavePhase"><span class="oi oi-check" aria-hidden="true"></span> Save </span>
-            <span @onclick="DeletePhase"><span class="oi oi-x" aria-hidden="true"></span> Delete</span>
-        </td>
-    </tr>
-</table>
+﻿<div style="background-color:#eeeeee;padding:.2em;">
+    <h5>Phase Details</h5>
+    <div class="container">
+        <div class="row">
+            <div class="col-3" style="text-align:right;">Phase Name</div>
+            <div class="col-9">
+                <InputText style="width:99%;" @bind-Value="phase.Name"></InputText>
+            </div>
+        </div>
+        <div class="row" style="margin-top:.2em;">
+            <div class="col-3" style="text-align:right;">Description</div>
+            <div class="col-9">
+                <InputTextArea style="width:99%;" @bind-Value="phase.Description"></InputTextArea>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3" style="text-align:right;">Phase Length In Weeks</div>
+            <div class="col-3">
+                <InputNumber style="width:4em;" @bind-Value="phase.LengthInWeeks"></InputNumber>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-9">
+            </div>
+            <div class="col-3">
+                <span @onclick="SavePhase"><span class="oi oi-check" aria-hidden="true"></span> Save </span>
+                <span @onclick="DeletePhase"><span class="oi oi-x" aria-hidden="true"></span> Delete</span>
+            </div>
+        </div>
+    </div>
+</div>
 <ResourcesSelectedForPhase phase="@phase" />
 
 @code {

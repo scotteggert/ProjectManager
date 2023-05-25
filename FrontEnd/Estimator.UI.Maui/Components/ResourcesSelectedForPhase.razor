@@ -1,57 +1,63 @@
-﻿<h3>Select Resources For This Phase</h3>
-@using Microsoft.Extensions.Logging
+﻿@using Microsoft.Extensions.Logging
 @inject Estimator.UI.Services.IRateCard rateCardService
 @inject ILogger<Error> Logger
 
-
 <h5>Estimate Phase Rate Card Items</h5>
-<div>
-    <p>Resources for this Phase</p>
+<h4>Total Cost for this phase: $@GetTotalCost()</h4>
+<div class="row" >
+    <div style="border: solid 1px black;">
+
 @foreach (var item in phase.EstimatePhaseRateCardItems)
 {
-    <div>
-        <span @onclick="@(e => EditItem(item))">@item.RateCardItem.RoleName - @item.RateCardItem.Rate (@item.Count at @item.PercentageUtilized%)</span>
-        <span @onclick="@(e => RemoveItem(item))" style="padding-left:1em;"><span class="oi oi-x" aria-hidden="true"></span> Remove</span>
+    <div class="row">
+        <div class="col-10" @onclick="@(e => EditItem(item))">@item.RateCardItem.RoleName - @item.RateCardItem.Rate (@item.Count at @item.PercentageUtilized%)</div>
+        <div class="col-2" @onclick="@(e => RemoveItem(item))" style="padding-left:1em;"><span class="oi oi-x" aria-hidden="true"></span> Remove</div>
     </div>
 }
+    </div>
 </div>
-<div class="row">
-    <div class="col-6">
-        <div>
-            <p>All Resources</p>
+<div class="row" style="margin-top:1em;">
+    <div class="col-6" >
+        <div style="background-color:#eeeeee;padding:.2em;">
+            <p><b>All Resources</b></p>
             @foreach (var item in rateCard.RateCardItems.OrderBy(p => p.GroupName).ThenByDescending(p => p.Rate))
             {
                 <div @onclick="@(e => AddItem(item))">@item.RoleName - @item.Rate</div>
             }
         </div>
     </div>
-    <div class="col-6">
-        <p>Rate Card Item</p>
-        <h5>@currentItem.RateCardItem?.RoleName</h5>
-        <div class="container">
-            <div class="row">
-                <div class="col-6">
-                    <span>Count</span>
-                </div>
-                <div class="col-4">
-                    <InputNumber style="width: 3em;" @bind-Value="currentItem.Count"></InputNumber>
-                </div>
+    <div class="col-6" >
+        <div style="background-color:#eeeeee;padding:.2em;">
+            <p>
+                <b>Selected Rate Card Item</b>
+                <span class="oi oi-task" aria-hidden="true" style="padding-left:1em;"></span> Create New
+            </p>
 
-            </div>
-            <div class="row">
-                <div class="col-6">
-                    <span>% Utilization</span>
+            <h5>@currentItem.RateCardItem?.RoleName</h5>
+            <div class="container">
+                <div class="row">
+                    <div class="col-6" style="text-align:right;">
+                        <span>Count</span>
+                    </div>
+                    <div class="col-4">
+                        <InputNumber style="width: 3em;" @bind-Value="currentItem.Count"></InputNumber>
+                    </div>
                 </div>
-                <div class="col-4">
-                    <InputNumber style="width: 4em;" @bind-Value="currentItem.PercentageUtilized"></InputNumber>
+                <div class="row" style="margin-top:.3em;">
+                    <div class="col-6" style="text-align:right;">
+                        <span>% Utilization</span>
+                    </div>
+                    <div class="col-4">
+                        <InputNumber style="width: 4em;" @bind-Value="currentItem.PercentageUtilized"></InputNumber>
+                    </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col-6">
-                    <span @onclick="SaveItem"><span class="oi oi-check" aria-hidden="true"></span> Save </span>
-                </div>
-                <div class="col-6">
-                    <span @onclick="DeleteCurrentItem"><span class="oi oi-x" aria-hidden="true"></span> Delete</span>
+                <div class="row">
+                    <div class="col-6">
+                        <span @onclick="SaveItem"><span class="oi oi-check" aria-hidden="true"></span> Save </span>
+                    </div>
+                    <div class="col-6">
+                        <span @onclick="DeleteCurrentItem"><span class="oi oi-x" aria-hidden="true"></span> Delete</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,7 +107,11 @@
 
 
 
+    private void AddNewItem()
+    {
+        currentItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
 
+    }
 
     private void EditItem(Estimator.UI.Model.EstimatePhaseRateCardItem item)
     {
@@ -139,4 +149,15 @@
         currentItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
 
     }
+
+    private decimal GetTotalCost()
+    {
+        var total = 0m;
+        foreach (var item in phase.EstimatePhaseRateCardItems)
+        {
+            total += item.Count * (item.RateCardItem.Rate * (phase.LengthInWeeks * 40));
+        }
+        return total;
+    }
+
 }

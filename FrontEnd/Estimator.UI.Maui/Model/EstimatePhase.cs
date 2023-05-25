@@ -8,19 +8,28 @@
         public List<EstimatePhaseRateCardItem> EstimatePhaseRateCardItems { get; set; }
         public DateTime EstimatedStartDate { get; set; } = DateTime.UtcNow;
         public DateTime EstimatedEndDate { get; set; } = DateTime.UtcNow.AddDays(3);
+        public int LengthInWeeks { get; set; } = 1;
 
         public EstimatePhase() {
             EstimatePhaseRateCardItems = new List<EstimatePhaseRateCardItem>();
         }
 
-        public EstimatePhase(int id, string name, string description, List<EstimatePhaseRateCardItem> rateCardItems, DateTime estimatedStartDate, DateTime estimatedEndDate)
+        public EstimatePhase(
+            int id, 
+            string name, 
+            string description, 
+            List<EstimatePhaseRateCardItem> rateCardItems, 
+            DateTime estimatedStartDate, 
+            DateTime estimatedEndDate,
+            int lengthInWeeks)
         {
             Id = id;
             Name = name;
             Description = description;
             EstimatePhaseRateCardItems = rateCardItems;
             EstimatedStartDate = estimatedStartDate;
-            EstimatedEndDate = estimatedEndDate;    
+            EstimatedEndDate = estimatedEndDate;
+            LengthInWeeks = lengthInWeeks;
 
         }
     }
