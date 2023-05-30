@@ -1,8 +1,27 @@
 ﻿@using Microsoft.Extensions.Logging
 @using Estimator.UI.Maui.Components
-@inject ILogger<Error> Logger
+@using DocumentFormat.OpenXml.Packaging;
+@using DocumentFormat.OpenXml.Spreadsheet;
+@using CommunityToolkit.Maui;
+@using CommunityToolkit.Maui.Storage;
+@using S = DocumentFormat.OpenXml.Spreadsheet.Sheets;
+@using E = DocumentFormat.OpenXml.OpenXmlElement;
+@using A = DocumentFormat.OpenXml.OpenXmlAttribute;
 
-<h5>Make an Estimate</h5>
+@inject ILogger<Error> Logger
+@inject IFolderPicker FolderPicker
+
+<div class="row">
+    <div class="col-9">
+        <h5>Make an Estimate</h5>
+    </div>
+    <div class="col-3">
+        <InputFile OnChange="LoadFile" />
+    </div>
+    <div class="col-3">
+        <span @onclick="ExportToExcel"><span class="oi oi-external-link" aria-hidden="true"></span> Export to Excel </span>
+    </div>
+</div>
 <EditForm EditContext="@editContext">
     <DataAnnotationsValidator />
     <ValidationSummary />
@@ -34,6 +53,8 @@
 
 
 @code {
+    //private readonly IFolderPicker folderPicker;
+
     private EditContext? editContext;
 
     [Parameter]
@@ -104,5 +125,434 @@
     //        estimate.EstimatePhases.Remove(findPhase);
     //    }
     //}
+
+    private async Task ExportToExcel()
+    {
+        CancellationTokenSource source = new();
+        CancellationToken token = source.Token;
+        var result = await FolderPicker.PickAsync(token);
+        if (result.IsSuccessful)
+        {
+            //using(SpreadsheetDocument sd = SpreadsheetDocument.Create(result.Folder.Path + "\\Estimate999.xlsx" , DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook)){
+
+            try
+            {
+                using (SpreadsheetDocument document = SpreadsheetDocument.Create(result.Folder.Path + "\\Estimate - " + estimate.JobCode + ".xlsx", DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook))
+                {
+                    WorkbookPart workbookPart = document.AddWorkbookPart();
+                    workbookPart.Workbook = new Workbook();
+
+                    WorksheetPart worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+                    worksheetPart.Worksheet = new Worksheet(new SheetData());
+
+                    Sheets sheets = workbookPart.Workbook.AppendChild(new Sheets());
+                    //Sheet sheetEstimates = new Sheet()
+                    //    {
+                    //        Id = workbookPart.GetIdOfPart(worksheetPart),
+                    //        SheetId = 1,
+                    //        Name = "All Estimates"
+                    //    };
+                    //sheets.Append(sheetEstimates);
+
+                    //workbookPart.Workbook.Save();
+
+                    Sheet sheetEstimate = new Sheet()
+                        {
+                            Id = workbookPart.GetIdOfPart(worksheetPart),
+                            SheetId = 1,
+                            Name = estimate.JobCode
+                        };
+                    sheets.Append(sheetEstimate);
+
+                    workbookPart.Workbook.Save();
+
+                    // Add some data to the first worksheet that has a list of all estimates
+                    SheetData sheetData = GetSheetData(workbookPart, sheetEstimate);// sheetEstimate.GetFirstChild<SheetData>();// worksheetPart.Worksheet.GetFirstChild<SheetData>();
+                    Row row = new Row() { RowIndex = 1 };
+                    Cell cell = new Cell() { CellReference = "A1", DataType = CellValues.String, CellValue = new CellValue("Client Name") };
+                    row.Append(cell);
+                    cell = new Cell() { CellReference = "B1", DataType = CellValues.String, CellValue = new CellValue("Job Code") };
+                    row.Append(cell);
+                    cell = new Cell() { CellReference = "C1", DataType = CellValues.String, CellValue = new CellValue("Project Manager") };
+                    row.Append(cell);
+                    cell = new Cell() { CellReference = "D1", DataType = CellValues.String, CellValue = new CellValue("Date Created") };
+                    row.Append(cell);
+                    sheetData.Append(row);
+
+                    row = new Row() { RowIndex = 2 };
+                    cell = new Cell() { CellReference = "A2", DataType = CellValues.String, CellValue = new CellValue(estimate.ClientName) };
+                    row.Append(cell);
+                    cell = new Cell() { CellReference = "B2", DataType = CellValues.String, CellValue = new CellValue(estimate.JobCode) };
+                    row.Append(cell);
+                    cell = new Cell() { CellReference = "C2", DataType = CellValues.String, CellValue = new CellValue(estimate.ProjectManager) };
+                    row.Append(cell);
+                    cell = new Cell() { CellReference = "D2", DataType = CellValues.String, CellValue = new CellValue(estimate.CreatedDate) };
+                    row.Append(cell);
+                    sheetData.Append(row);
+
+                    row = new Row() { RowIndex = 3 };
+                    cell = new Cell() { CellReference = "A3", DataType = CellValues.String, CellValue = new CellValue("Phases") };
+                    row.Append(cell);
+                    sheetData.Append(row);
+
+                    UInt32 c = 4;
+                    //Now write each phase to the worksheet
+                    foreach(var phase in estimate.EstimatePhases)
+                    {
+                        row = new Row() { RowIndex = c };
+                        cell = new Cell() { CellReference = "A" + c, DataType = CellValues.String, CellValue = new CellValue("Name") };
+                        row.Append(cell);
+                        sheetData.Append(row);
+
+                        row = new Row() { RowIndex = c };
+                        cell = new Cell() { CellReference = "B"+c, DataType = CellValues.String, CellValue = new CellValue(phase.Name) };
+                        row.Append(cell);
+                        sheetData.Append(row);
+                        c++;
+
+                        //
+                        row = new Row() { RowIndex = c };
+                        cell = new Cell() { CellReference = "A" + c, DataType = CellValues.String, CellValue = new CellValue("Description") };
+                        row.Append(cell);
+                        sheetData.Append(row);
+
+                        row = new Row() { RowIndex = c };
+                        cell = new Cell() { CellReference = "B" + c, DataType = CellValues.String, CellValue = new CellValue(phase.Description) };
+                        row.Append(cell);
+                        sheetData.Append(row);
+                        c++;
+
+                        //
+                        row = new Row() { RowIndex = c };
+                        cell = new Cell() { CellReference = "A" + c, DataType = CellValues.String, CellValue = new CellValue("Length In Weeks") };
+                        row.Append(cell);
+                        sheetData.Append(row);
+
+                        row = new Row() { RowIndex = c };
+                        cell = new Cell() { CellReference = "B" + c, DataType = CellValues.String, CellValue = new CellValue(phase.LengthInWeeks) };
+                        row.Append(cell);
+                        sheetData.Append(row);
+                        c++;
+
+                        c++;
+
+                        row = new Row() { RowIndex = c };
+                        cell = new Cell() { CellReference = "A"+c, DataType = CellValues.String, CellValue = new CellValue("Rate Card Items") };
+                        row.Append(cell);
+                        sheetData.Append(row);
+                        c++;
+
+                        foreach(var rci in phase.EstimatePhaseRateCardItems)
+                        {
+                            row = new Row() { RowIndex = c };
+                            cell = new Cell() { CellReference = "A" + c, DataType = CellValues.String, CellValue = new CellValue("Role") };
+                            row.Append(cell);
+                            sheetData.Append(row);
+
+                            row = new Row() { RowIndex = c };
+                            cell = new Cell() { CellReference = "B" + c, DataType = CellValues.String, CellValue = new CellValue(rci.RateCardItem.RoleName) };
+                            row.Append(cell);
+                            sheetData.Append(row);
+                            c++;
+                            //
+                            row = new Row() { RowIndex = c };
+                            cell = new Cell() { CellReference = "A" + c, DataType = CellValues.String, CellValue = new CellValue("Count") };
+                            row.Append(cell);
+                            sheetData.Append(row);
+
+                            row = new Row() { RowIndex = c };
+                            cell = new Cell() { CellReference = "B" + c, DataType = CellValues.String, CellValue = new CellValue(rci.Count) };
+                            row.Append(cell);
+                            sheetData.Append(row);
+                            c++;
+                            //
+                            row = new Row() { RowIndex = c };
+                            cell = new Cell() { CellReference = "A" + c, DataType = CellValues.String, CellValue = new CellValue("PercentageUtilized") };
+                            row.Append(cell);
+                            sheetData.Append(row);
+
+                            row = new Row() { RowIndex = c };
+                            cell = new Cell() { CellReference = "B" + c, DataType = CellValues.String, CellValue = new CellValue(rci.PercentageUtilized) };
+                            row.Append(cell);
+                            sheetData.Append(row);
+                            c++;
+                            //
+                            row = new Row() { RowIndex = c };
+                            cell = new Cell() { CellReference = "A" + c, DataType = CellValues.String, CellValue = new CellValue("Rate") };
+                            row.Append(cell);
+                            sheetData.Append(row);
+
+                            row = new Row() { RowIndex = c };
+                            cell = new Cell() { CellReference = "B" + c, DataType = CellValues.String, CellValue = new CellValue(rci.RateCardItem.Rate) };
+                            row.Append(cell);
+                            sheetData.Append(row);
+                            c++;
+
+                        }
+                        c++;
+
+
+                    }
+
+                    // Save the worksheet
+                    worksheetPart.Worksheet.Save();
+                }
+
+            }
+            catch(Exception ex)
+            {
+
+            }
+
+
+            //}
+
+
+            //await Toast.Make($"   The folder was picked: Name - {result.Folder.Name}, Path - {result.Folder.Path}", ToastDuration.Long).Show(cancellationToken);
+        }
+        else
+        {
+            //await Toast.Make($"The folder was not picked with error: {result.Exception.Message}").Show(cancellationToken);
+        }
+
+
+
+
+
+        //MemoryStream memoryStream = new MemoryStream();
+        //SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.Create(memoryStream, DocumentFormat.OpenXml.SpreadsheetDocumentType.Workbook);
+
+        ////add the excel contents...
+
+        ////reset the position to the start of the stream
+        //memoryStream.Seek(0, SeekOrigin.Begin);
+
+        //return new FileStreamResult(memoryStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+
+
+    public SheetData GetSheetData(WorkbookPart workbookPart, Sheet sheet)
+    {
+        // The sheet ID is the relationship ID between the workbook part and the worksheet part
+        string relationshipId = sheet.Id;
+
+        // Get the WorksheetPart associated with the given sheet
+        WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(relationshipId);
+
+        // Get the SheetData from the worksheet part
+        SheetData sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>();
+
+        return sheetData;
+    }
+
+    private void ImportEstimate()
+    {
+
+    }
+
+    private async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        if (e.File.Name.EndsWith(".xlsx"))
+        {
+            estimate = new Estimator.UI.Model.Estimate();
+
+            var ms = new MemoryStream();
+            await e.File.OpenReadStream().CopyToAsync(ms);
+
+            var sd = SpreadsheetDocument.Open(ms, true);
+            using (SpreadsheetDocument document = SpreadsheetDocument.Open(ms, true))
+            {
+                WorkbookPart workbookPart = document.WorkbookPart;
+                //DocumentFormat.OpenXml.Spreadsheet.Workbook workbook = bkPart.Workbook;
+                //DocumentFormat.OpenXml.Spreadsheet.Sheet s = workbook.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>().Where(sht => sht.Name == "JC1234").FirstOrDefault();
+                //WorksheetPart wsPart = (WorksheetPart)bkPart.GetPartById(s.Id);
+                //DocumentFormat.OpenXml.Spreadsheet.SheetData sheetdata = wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.SheetData>().FirstOrDefault();
+
+                var firstSheet = document.WorkbookPart.Workbook.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>().First();
+                WorksheetPart wsPart = (WorksheetPart)document.WorkbookPart.GetPartById(firstSheet.Id);
+                DocumentFormat.OpenXml.Spreadsheet.SheetData sheetdata = wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.SheetData>().FirstOrDefault();
+                Cell cell = sheetdata.Descendants<Cell>().FirstOrDefault(c => string.Compare(c.CellReference.Value, "A2", true) == 0);
+                string clientName  = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(cell.CellValue.Text)).InnerText;
+                estimate.ClientName = clientName;
+
+                cell = sheetdata.Descendants<Cell>().FirstOrDefault(c => string.Compare(c.CellReference.Value, "B2", true) == 0);
+                string jobCode = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(cell.CellValue.Text)).InnerText;
+                estimate.JobCode = jobCode;
+
+                cell = sheetdata.Descendants<Cell>().FirstOrDefault(c => string.Compare(c.CellReference.Value, "C2", true) == 0);
+                string projectManager = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(cell.CellValue.Text)).InnerText;
+                estimate.ProjectManager = projectManager;
+
+                cell = sheetdata.Descendants<Cell>().FirstOrDefault(c => string.Compare(c.CellReference.Value, "D2", true) == 0);
+                string dateCreated = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(cell.CellValue.Text)).InnerText;
+                estimate.CreatedDate = DateTime.Parse(dateCreated);
+
+                var isValid = true;
+                bool newPhaseFound = false;
+                Estimator.UI.Model.EstimatePhase currentPhase = null;
+                Estimator.UI.Model.EstimatePhaseRateCardItem currentEstimatePhaseRateCardItem = null;
+
+                //Get the phases
+                foreach (Row r in sheetdata.Elements<Row>())
+                {
+                    if (r.RowIndex > 3)
+                    {
+                        //foreach (var c in r.Elements<Cell>())
+                        //{
+                        //    //string cellReference = c.CellReference;
+                        //    // // Get column from cell reference (like "A")
+                        //    // string column = new string(cellReference.TakeWhile(char.IsLetter).ToArray());
+
+                        //    //var cc = sheetdata.Descendants<Cell>().FirstOrDefault(c);
+                        //    //cell = sheetdata.Descendants<Cell>().FirstOrDefault(c => string.Compare(c.CellReference.Value, "D2", true) == 0);
+                        //    string phaseNameText = "";
+                        //    string phaseName = "";
+                        //    bool afterHeader = false;
+
+
+
+                        //    if (col == 1)
+                        //    {
+                        //        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(1).InnerText == "Name")
+                        //        {
+                        //            phaseNameText = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(c.CellValue.Text)).InnerText;
+                        //        }
+                        //    }
+                        //    if (col == 2)
+                        //    {
+                        //        phaseName = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(c.CellValue.Text)).InnerText;
+                        //    }
+                        //    if (afterHeader == false)
+                        //    {
+                        //        if (phaseNameText == "Name")
+                        //        {
+                        //            afterHeader = true;
+                        //        }
+                        //    }
+                        //    else
+                        //    {
+
+                        //    }
+
+
+                        //    col++;
+                        //}
+
+                        //var titleCell = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText;
+
+
+
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Name")
+                        {
+                            //we have a new phase
+                            if (currentPhase == null)
+                            {
+                                currentPhase = new Estimator.UI.Model.EstimatePhase();
+
+                            } else
+                            {
+                                estimate.EstimatePhases.Add(currentPhase);
+                                currentPhase = new Estimator.UI.Model.EstimatePhase();
+                            }
+                            newPhaseFound = true;
+                        }
+
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Name")
+                        {
+                            currentPhase.Name = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText;
+                            continue;
+                        }
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Description")
+                        {
+                            currentPhase.Description = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText;
+                            continue;
+                        }
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Length In Weeks")
+                        {
+                            currentPhase.LengthInWeeks = int.Parse(workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText);
+                            continue;
+                        }
+
+                        bool inRateCardSection = false;
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Rate Card Items")
+                        {
+                            inRateCardSection = true;
+                            continue;
+                        }
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Role")
+                        {
+                            if (currentEstimatePhaseRateCardItem == null)
+                            {
+                                currentEstimatePhaseRateCardItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
+                                currentEstimatePhaseRateCardItem.RateCardItem = new Estimator.UI.Model.RateCardItem();
+
+                            }
+                            else
+                            {
+                                currentPhase.EstimatePhaseRateCardItems.Add(currentEstimatePhaseRateCardItem);
+                                currentEstimatePhaseRateCardItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
+                                currentEstimatePhaseRateCardItem.RateCardItem = new Estimator.UI.Model.RateCardItem();
+
+                            }
+                            currentEstimatePhaseRateCardItem.RateCardItem.RoleName = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText;
+                            continue;
+                        }
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Count")
+                        {
+                            currentEstimatePhaseRateCardItem.Count = Int32.Parse(workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText);
+                            continue;
+                        }
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "PercentageUtilized")
+                        {
+                            currentEstimatePhaseRateCardItem.PercentageUtilized = Int32.Parse(workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText);
+                            continue;
+                        }
+                        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Rate")
+                        {
+                            currentEstimatePhaseRateCardItem.RateCardItem.Rate = Int32.Parse(workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText);
+                            continue;
+                        }
+                        
+
+
+                        //if (c.InnerText == "Client Name")
+                        //{
+                        //    estimate.ClientName = r.Elements<Cell>().ElementAt(1).InnerText;
+                        //}
+
+                        //if (c.DataType != null)
+                        //{
+                        //    if (c.DataType == CellValues.SharedString)
+                        //    {
+                        //        int id = -1;
+                        //        if (Int32.TryParse(c.InnerText, out id))
+                        //        {
+                        //            SharedStringItem item = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(id);
+                        //            if (item.Text != null)
+                        //            {
+                        //                string value = item.Text.Text;
+                        //            }
+                        //            else if (item.InnerText != null)
+                        //            {
+                        //                string value = item.InnerText;
+                        //            }
+                        //            else if (item.InnerXml != null)
+                        //            {
+                        //                string value = item.InnerXml;
+                        //            }
+                        //        }
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    string value = c.InnerText;
+                        //}
+                    }
+                }
+            }
+        }
+    }
+
+
 
 }

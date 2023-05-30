@@ -9,40 +9,39 @@
     <div class="row" hidden="@_hideList">
         <div class="col-md-12">
             <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Phase</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var phase in estimatePhases)
-                    {
-                        <tr>
-                            <td>
-                                <div @onclick="(e=>SelectPhase(phase))">@phase.Name - (@phase.LengthInWeeks weeks)</div>
-                                <div>@phase.Description</div>
-                                <div style="background-color:#eeeeee;padding:.2em;">
-                                    <div class="row">
-                                        <div class="col-7">Role Name</div>
-                                        <div class="col-1">Rate</div>
-                                        <div class="col-2">Number</div>
-                                        <div class="col-2">% Utilized</div>
-                                    </div>
-                                    @foreach (var rci in phase.EstimatePhaseRateCardItems)
-                                    {
-                                        <div class="row">
-                                            <div class="col-7">@rci.RateCardItem.RoleName</div>
-                                            <div class="col-1">@rci.RateCardItem.Rate</div>
-                                            <div class="col-2">@rci.Count</div>
-                                            <div class="col-2">@rci.PercentageUtilized</div>
-                                        </div>
-                                    }
+            @foreach (var phase in estimatePhases)
+            {
+                <tr>
+                    <td>
+                        <div @onclick="(e=>SelectPhase(phase))"><b>@phase.Name - (@phase.LengthInWeeks weeks)</b></div>
+                        <div>@phase.Description</div>
+                        <div style="background-color:#eeeeee;padding:.2em;">
+                            <div class="row">
+                                <div class="col-7">Role Name</div>
+                                <div class="col-1">Rate</div>
+                                <div class="col-2">Number</div>
+                                <div class="col-2">% Utilized</div>
+                            </div>
+                            @foreach (var rci in phase.EstimatePhaseRateCardItems)
+                            {
+                                <div class="row">
+                                    <div class="col-7">@rci.RateCardItem.RoleName</div>
+                                    <div class="col-1">@rci.RateCardItem.Rate</div>
+                                    <div class="col-2">@rci.Count</div>
+                                    <div class="col-2">@rci.PercentageUtilized</div>
                                 </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
+                            }
+                            <div class="row">
+                                    <div class="col-7"></div>
+                                    <div class="col-5"><span>Total Cost: $@GetTotalCostForPhase(phase)</span></div>
+                                    
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
             </table>
+            <span>Grand Total For Estimate: $@GetTotalCostForEstimate()</span>
         </div>
     </div>
     <div class="row" hidden="@_hidePhase" @onclick="ShowEstimatePhases">
@@ -136,5 +135,28 @@
 
     }
 
+    private decimal GetTotalCostForPhase(Model.EstimatePhase phase)
+    {
+        var total = 0m;
+        foreach (var item in phase.EstimatePhaseRateCardItems)
+        {
+            total += item.Count * (item.RateCardItem.Rate * (phase.LengthInWeeks * 40));
+        }
+        return total;
+    }
+
+    private decimal GetTotalCostForEstimate()
+    {
+        var total = 0m;
+        foreach(var phase in estimatePhases)
+        {
+            foreach (var item in phase.EstimatePhaseRateCardItems)
+            {
+                total += item.Count * (item.RateCardItem.Rate * (phase.LengthInWeeks * 40));
+            }
+
+        }
+        return total;
+    }
 
 }

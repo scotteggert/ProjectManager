@@ -3,10 +3,9 @@
 @inject ILogger<Error> Logger
 
 <h5>Estimate Phase Rate Card Items</h5>
-<h4>Total Cost for this phase: $@GetTotalCost()</h4>
+<h5>Total Cost for this phase: $@GetTotalCost()</h5>
 <div class="row" >
     <div style="border: solid 1px black;">
-
 @foreach (var item in phase.EstimatePhaseRateCardItems)
 {
     <div class="row">
@@ -20,8 +19,18 @@
     <div class="col-6" >
         <div style="background-color:#eeeeee;padding:.2em;">
             <p><b>All Resources</b></p>
+            @{
+                string groupName = "";
+            }          
             @foreach (var item in rateCard.RateCardItems.OrderBy(p => p.GroupName).ThenByDescending(p => p.Rate))
             {
+                if (item.GroupName != groupName)
+                {
+                    <div class="row">
+                        <b> @item.GroupName </b>
+                    </div>
+                    groupName = item.GroupName;
+                }
                 <div @onclick="@(e => AddItem(item))">@item.RoleName - @item.Rate</div>
             }
         </div>

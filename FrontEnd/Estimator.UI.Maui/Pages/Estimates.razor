@@ -1,14 +1,22 @@
 ﻿@page "/estimates"
 @inject IEstimator EstimatorService
 @using Microsoft.Extensions.Logging
+@using DocumentFormat.OpenXml.Packaging;
+@using DocumentFormat.OpenXml.Spreadsheet;
 
 @inject NavigationManager NavigationManager
 @inject ILogger<Estimates> Logger
 
 <h3>Estimates</h3>
 <div class="container">
-    <div class="row" hidden="@_hideList" @onclick="CreateNewEstimate">
-        <span><span class="oi oi-plus" aria-hidden="true"></span> Create New Estimate</span>
+    <div class="row" hidden="@_hideList">
+        <div class="col-4">
+            <span  @onclick="CreateNewEstimate"><span class="oi oi-plus" aria-hidden="true"></span> Create New Estimate</span>
+        </div>
+        <div class="col-8">
+            <span style="padding-left:1em;"><span class="oi oi-cloud-download" aria-hidden="true"></span> Load From Excel</span>
+            <InputFile OnChange="LoadFile"  />
+        </div>
     </div>
     <div class="row" hidden="@_hideList">
         <div class="col-md-12">
@@ -67,7 +75,7 @@
         _currentEstimate = new Estimator.UI.Model.Estimate();
         _hideList = true;
         _hideEstimate = false;
-       
+
     }
     private void ShowEstimates()
     {
@@ -82,4 +90,17 @@
         _hideList = true;
         _hideEstimate = false;
     }
+
+    private async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        if (e.File.Name.EndsWith(".xlsx"))
+        {
+            var ms = new MemoryStream();
+            await e.File.OpenReadStream().CopyToAsync(ms);
+
+          //  var sd = SpreadsheetDocument.Open(GridItemsLayout, true);
+
+        }   
+    }
+
 }
