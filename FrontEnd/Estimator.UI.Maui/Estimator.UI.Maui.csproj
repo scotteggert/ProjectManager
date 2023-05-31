@@ -13,7 +13,7 @@
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
 
         <!-- Display name -->
-        <ApplicationTitle>Estimator.UI.Maui</ApplicationTitle>
+        <ApplicationTitle>Estimate It!</ApplicationTitle>
 
         <!-- App Identifier -->
         <ApplicationId>com.companyname.estimator.ui.maui</ApplicationId>
@@ -31,7 +31,7 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
     </PropertyGroup>
 
-    <ItemGroup>
+    <ItemGroup> 
         <!-- App Icon -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
 
