@@ -17,10 +17,10 @@
                         <div>@phase.Description</div>
                         <div style="background-color:#eeeeee;padding:.2em;">
                             <div class="row">
-                                <div class="col-7">Role Name</div>
-                                <div class="col-1">Rate</div>
-                                <div class="col-2">Number</div>
-                                <div class="col-2">% Utilized</div>
+                                <div class="col-7"><u>Role Name</u></div>
+                                <div class="col-1"><u>Rate</u></div>
+                                    <div class="col-2"><u>Number</u></div>
+                                    <div class="col-2"><u>% Utilized</u></div>
                             </div>
                             @foreach (var rci in phase.EstimatePhaseRateCardItems)
                             {
@@ -33,7 +33,7 @@
                             }
                             <div class="row">
                                     <div class="col-7"></div>
-                                    <div class="col-5"><span>Total Cost: $@GetTotalCostForPhase(phase)</span></div>
+                                    <div class="col-5"><span><b>Phase Cost: $@GetTotalCostForPhase(phase)</b></span></div>
                                     
                             </div>
                         </div>
@@ -85,6 +85,12 @@
         {
             Error?.ProcessError(ex);
         }
+    }
+
+    public void HidePhase()
+    {
+        _hideList = false ;
+        _hidePhase = true;
     }
 
     private void SelectPhase(Estimator.UI.Model.EstimatePhase phase)

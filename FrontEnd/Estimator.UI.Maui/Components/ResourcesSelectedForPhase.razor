@@ -164,7 +164,10 @@
         var total = 0m;
         foreach (var item in phase.EstimatePhaseRateCardItems)
         {
-            total += item.Count * (item.RateCardItem.Rate * (phase.LengthInWeeks * 40));
+            if (item.RateCardItem != null)
+            {
+                total += item.Count * ((item.RateCardItem.Rate * (item.PercentageUtilized/100)) * (phase.LengthInWeeks * 40));
+            }
         }
         return total;
     }

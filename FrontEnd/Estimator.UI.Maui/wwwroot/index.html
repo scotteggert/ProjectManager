@@ -3,11 +3,21 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Estimator.UI.Maui</title>
+    <title>Estimate It!</title>
     <base href="/" />
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link href="css/app.css" rel="stylesheet" />
     <link href="Estimator.UI.Maui.styles.css" rel="stylesheet" />
+    <script>
+        window.saveAsFile = function (filename, data) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = 'data:application/octet-stream;base64,' + data;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+    </script>
 </head>
 
 <body>
