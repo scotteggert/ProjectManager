@@ -146,7 +146,7 @@
         var total = 0m;
         foreach (var item in phase.EstimatePhaseRateCardItems)
         {
-            total += item.Count * (item.RateCardItem.Rate * (phase.LengthInWeeks * 40));
+            total += item.Count * (item.RateCardItem.Rate * (phase.LengthInWeeks * (40 * (item.PercentageUtilized/100))));
         }
         return total;
     }
@@ -158,7 +158,7 @@
         {
             foreach (var item in phase.EstimatePhaseRateCardItems)
             {
-                total += item.Count * (item.RateCardItem.Rate * (phase.LengthInWeeks * 40));
+                total += item.Count * (item.RateCardItem.Rate * (phase.LengthInWeeks * (40 * (item.PercentageUtilized / 100))));
             }
 
         }

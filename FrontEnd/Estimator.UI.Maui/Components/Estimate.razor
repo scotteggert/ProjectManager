@@ -366,13 +366,14 @@
             {
                 WorkbookPart workbookPart = document.WorkbookPart;
                 //DocumentFormat.OpenXml.Spreadsheet.Workbook workbook = bkPart.Workbook;
-                //DocumentFormat.OpenXml.Spreadsheet.Sheet s = workbook.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>().Where(sht => sht.Name == "JC1234").FirstOrDefault();
+                //  DocumentFormat.OpenXml.Spreadsheet.Sheet sheet = document.WorkbookPart.Workbook.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>().FirstOrDefault();
                 //WorksheetPart wsPart = (WorksheetPart)bkPart.GetPartById(s.Id);
                 //DocumentFormat.OpenXml.Spreadsheet.SheetData sheetdata = wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.SheetData>().FirstOrDefault();
 
                 var firstSheet = document.WorkbookPart.Workbook.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>().First();
                 WorksheetPart wsPart = (WorksheetPart)document.WorkbookPart.GetPartById(firstSheet.Id);
                 DocumentFormat.OpenXml.Spreadsheet.SheetData sheetdata = wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.SheetData>().FirstOrDefault();
+
                 Cell cell = sheetdata.Descendants<Cell>().FirstOrDefault(c => string.Compare(c.CellReference.Value, "A2", true) == 0);
 
                 if (workbookPart.SharedStringTablePart != null)
@@ -422,60 +423,14 @@
                 Estimator.UI.Model.EstimatePhase currentPhase = null;
                 Estimator.UI.Model.EstimatePhaseRateCardItem currentEstimatePhaseRateCardItem = null;
 
-                //Get the phases
-                foreach (Row r in sheetdata.Elements<Row>())
+                if (workbookPart.SharedStringTablePart != null)
                 {
-                    if (r.RowIndex < 4)
+                    foreach (Row r in sheetdata.Elements<Row>())
                     {
-                        continue;
-                    }
-                    //foreach (var c in r.Elements<Cell>())
-                    //{
-                    //    //string cellReference = c.CellReference;
-                    //    // // Get column from cell reference (like "A")
-                    //    // string column = new string(cellReference.TakeWhile(char.IsLetter).ToArray());
-
-                    //    //var cc = sheetdata.Descendants<Cell>().FirstOrDefault(c);
-                    //    //cell = sheetdata.Descendants<Cell>().FirstOrDefault(c => string.Compare(c.CellReference.Value, "D2", true) == 0);
-                    //    string phaseNameText = "";
-                    //    string phaseName = "";
-                    //    bool afterHeader = false;
-
-
-
-                    //    if (col == 1)
-                    //    {
-                    //        if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(1).InnerText == "Name")
-                    //        {
-                    //            phaseNameText = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(c.CellValue.Text)).InnerText;
-                    //        }
-                    //    }
-                    //    if (col == 2)
-                    //    {
-                    //        phaseName = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(c.CellValue.Text)).InnerText;
-                    //    }
-                    //    if (afterHeader == false)
-                    //    {
-                    //        if (phaseNameText == "Name")
-                    //        {
-                    //            afterHeader = true;
-                    //        }
-                    //    }
-                    //    else
-                    //    {
-
-                    //    }
-
-
-                    //    col++;
-                    //}
-
-                    //var titleCell = workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text)).InnerText;
-
-
-
-                    if (workbookPart.SharedStringTablePart != null)
-                    {
+                        if (r.RowIndex < 4)
+                        {
+                            continue;
+                        }
                         if (workbookPart.SharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ElementAt(int.Parse(r.Elements<Cell>().FirstOrDefault().CellValue.Text)).InnerText == "Name")
                         {
                             //we have a new phase
@@ -540,73 +495,99 @@
 
                             continue;
                         }
-
-
-                    }
-                    else
-                    {
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "Name")
-                        {
-                            //we have a new phase
-                            if (currentPhase == null)
-                            {
-                                currentPhase = new Estimator.UI.Model.EstimatePhase();
-
-                            }
-                            else
-                            {
-                                currentPhase = new Estimator.UI.Model.EstimatePhase();
-                            }
-                            newPhaseFound = true;
-                        }
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "Name")
-                        {
-                            currentPhase.Name = r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text;
-                            continue;
-                        }
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "Description")
-                        {
-                            currentPhase.Description = r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text;
-                            continue;
-                        }
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "Length In Weeks")
-                        {
-                            currentPhase.LengthInWeeks = int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text);
-                            continue;
-                        }
-                        //
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "Rate Card Items")
-                        {
-                            continue;
-                        }
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "Role")
-                        {
-                            currentEstimatePhaseRateCardItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
-                            currentEstimatePhaseRateCardItem.RateCardItem = new Estimator.UI.Model.RateCardItem();
-
-                            currentEstimatePhaseRateCardItem.RateCardItem.RoleName = r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text;
-                            continue;
-                        }
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "Count")
-                        {
-                            currentEstimatePhaseRateCardItem.Count = int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text);
-                            continue;
-                        }
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "PercentageUtilized")
-                        {
-                            currentEstimatePhaseRateCardItem.PercentageUtilized = int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text);
-                            continue;
-                        }
-                        if (r.Elements<Cell>().FirstOrDefault().CellValue.Text == "Rate")
-                        {
-                            currentEstimatePhaseRateCardItem.RateCardItem.Rate = int.Parse(r.Elements<Cell>().ElementAtOrDefault(1).CellValue.Text);
-                            currentPhase.EstimatePhaseRateCardItems.Add(currentEstimatePhaseRateCardItem);
-                            continue;
-                        }
-
                     }
                 } 
-                
+                else
+                {
+                    uint rowIndex = 4;
+                    var foundEmptyRow = false;
+                    var foundEmptyRowIndex = 0;
+                    var foundMoreThanOneRow = false;
+                    //foreach (Row r in sheetdata.Elements<Row>())
+                    var columns = wsPart.Worksheet.GetFirstChild<SheetData>().
+                                         Elements<Row>().Where(r => r.RowIndex == rowIndex);
+                    while (!foundMoreThanOneRow )
+                    {
+                        if (columns.Count() == 0)
+                        {
+                            if (!foundEmptyRow && foundEmptyRowIndex != rowIndex)  //have to check for all of the items that have the same rowindex - this doesn't work quite right
+                            {
+                                foundEmptyRow = true;
+                                foundEmptyRowIndex = (int)rowIndex;
+                                rowIndex++;
+                                columns = wsPart.Worksheet.GetFirstChild<SheetData>().
+                                                  Elements<Row>().Where(r => r.RowIndex == rowIndex);
+                                continue;
+                            } else
+                            {
+                                if (foundEmptyRowIndex != rowIndex)
+                                {
+                                    foundMoreThanOneRow = true;
+
+                                }
+                                rowIndex++;
+                                columns = wsPart.Worksheet.GetFirstChild<SheetData>().
+                                                  Elements<Row>().Where(r => r.RowIndex == rowIndex);
+                                continue;
+                            }
+                        } else 
+                        {
+                            foundEmptyRow = false;
+                        }
+                        switch (columns.ElementAt(0).InnerText)
+                        {
+                            case "Name":
+                                //we have a new phase
+                                if (currentPhase == null)
+                                {
+                                    currentPhase = new Estimator.UI.Model.EstimatePhase();
+
+                                }
+                                else
+                                {
+                                    currentPhase = new Estimator.UI.Model.EstimatePhase();
+                                }
+                                newPhaseFound = true;
+                                currentPhase.Name = columns.ElementAt(1).InnerText;
+                                break;
+                            case "Description":
+                                currentPhase.Description = columns.ElementAt(1).InnerText;
+                                break;
+                            case "Length In Weeks":
+                                currentPhase.LengthInWeeks = int.Parse(columns.ElementAt(1).InnerText);
+                                estimate.EstimatePhases.Add(currentPhase);
+                                break;
+                            case "Rate Card Items":
+
+                                break;
+                            case "Role":
+                                currentEstimatePhaseRateCardItem = new Estimator.UI.Model.EstimatePhaseRateCardItem();
+                                currentEstimatePhaseRateCardItem.RateCardItem = new Estimator.UI.Model.RateCardItem();
+                                currentEstimatePhaseRateCardItem.RateCardItem.RoleName = columns.ElementAt(1).InnerText;
+                                break;
+                            case "Count":
+                                currentEstimatePhaseRateCardItem.Count = Int32.Parse(columns.ElementAt(1).InnerText);
+                                break;
+                            case "PercentageUtilized":
+                                currentEstimatePhaseRateCardItem.PercentageUtilized = Int32.Parse(columns.ElementAt(1).InnerText);
+                                break;
+                            case "Rate":
+                                currentEstimatePhaseRateCardItem.RateCardItem.Rate = Int32.Parse(columns.ElementAt(1).InnerText);
+                                currentPhase.EstimatePhaseRateCardItems.Add(currentEstimatePhaseRateCardItem);
+                                break;
+                            default:
+                                break;  
+                        }
+
+                        
+                        rowIndex++;
+                        columns = wsPart.Worksheet.GetFirstChild<SheetData>().
+                                          Elements<Row>().Where(r => r.RowIndex == rowIndex);
+
+                    }
+                }
+
+
 
                 EstimatePhaseListForm.HidePhase();
                 //await OnEstimateLoaded.InvokeAsync();
@@ -614,6 +595,24 @@
         }
     }
 
+    //private static Cell GetCell(Worksheet worksheet,
+    //string columnName, uint rowIndex)
+    //{
+    //    var row = GetRow(worksheet, rowIndex);
 
+    //    if (row == null)
+    //        return null;
+
+    //    return row.Elements<Cell>().Where(c => string.Compare
+    //                                           (c.CellReference.Value, columnName +
+    //                                                                   rowIndex, true) == 0).First();
+    //}
+    //// Given a worksheet and a row index, return the row.
+    private static List<Row> GetRowData(Worksheet worksheet, uint rowIndex)
+    {
+        return worksheet.GetFirstChild<SheetData>().
+            Elements<Row>().Where(r => r.RowIndex == rowIndex).ToList();
+    }
+ 
 
 }

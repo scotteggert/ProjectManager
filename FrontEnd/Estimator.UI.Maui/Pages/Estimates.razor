@@ -47,9 +47,10 @@
             </table>
         </div>
     </div>
-    <div class="row" hidden="@_hideEstimate" @onclick="ShowEstimates">
+@*    <div class="row" hidden="@_hideEstimate" @onclick="ShowEstimates">
         <span><span class="oi oi-list" aria-hidden="true"></span> Show Estimates</span>
     </div>
+*@
     <div class="row" hidden="@_hideEstimate">
         <Estimator.UI.Maui.Components.Estimate estimate="@_currentEstimate"></Estimator.UI.Maui.Components.Estimate>
     </div>
@@ -67,7 +68,10 @@
     {
         Logger.LogInformation("Now loading... Estimates");
 
-        _estimates = EstimatorService.GetEstimates();
+//        _estimates = EstimatorService.GetEstimates();
+        _currentEstimate = new Estimator.UI.Model.Estimate();
+        _hideList = true;
+        _hideEstimate = false;
 
     }
 
