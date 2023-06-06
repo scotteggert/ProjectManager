@@ -12,15 +12,21 @@
 @inject IFolderPicker FolderPicker
 
 <div class="row">
-    <div class="col-9">
-        <h5>Make an Estimate</h5>
+    <h4>Make an Estimate</h4>
+</div>
+<div class="row">
+    <div>
+        <span style="cursor:pointer;" @onclick="ExportToExcel"><span class="oi oi-external-link" aria-hidden="false"></span> Export to Excel </span>
     </div>
-    <div class="col-3">
-        <InputFile OnChange="LoadFile" />
+</div>
+<div class="row" style="margin-top:.2em;margin-bottom:.75em;">
+    <div>
+        <span style="cursor:pointer;" @onclick="ShowFileUpload"><span class="oi oi-hard-drive" aria-hidden="false"></span> Load Estimate </span>
     </div>
-    <div class="col-3">
-        <span @onclick="ExportToExcel"><span class="oi oi-external-link" aria-hidden="true"></span> Export to Excel </span>
+    <div hidden="@FileUploadVisible">
+        <InputFile class="custom-file-input" OnChange="LoadFile"></InputFile>
     </div>
+
 </div>
 <EditForm EditContext="@editContext">
     <DataAnnotationsValidator />
@@ -126,6 +132,15 @@
     //        estimate.EstimatePhases.Remove(findPhase);
     //    }
     //}
+
+    public bool FileUploadVisible { get; set; } = true;
+
+    private void ShowFileUpload()
+    {
+        FileUploadVisible = !FileUploadVisible;
+        //divLoadFile.ClassList.Remove("d-none");
+        //EstimatePhaseListForm.ShowFileUpload();
+    }
 
     private async Task ExportToExcel()
     {

@@ -4,7 +4,7 @@
 <div class="container" style="margin-left:1em;margin-top:.5em;">
     <h5>Estimate Phases</h5>
     <div class="row"  @onclick="CreateNewPhase">
-        <span><span class="oi oi-plus" aria-hidden="true"></span> Create New Phase</span>
+        <span style="cursor:pointer;"><span class="oi oi-plus" aria-hidden="false"></span> Create New Phase</span>
     </div>
     <div class="row" hidden="@_hideList">
         <div class="col-md-12">
@@ -13,7 +13,7 @@
             {
                 <tr>
                     <td>
-                        <div @onclick="(e=>SelectPhase(phase))"><b>@phase.Name - (@phase.LengthInWeeks weeks)</b></div>
+                        <div @onclick="(e=>SelectPhase(phase))" style="cursor:pointer;text-decoration:underline;"><b>@phase.Name - (@phase.LengthInWeeks weeks)</b></div>
                         <div>@phase.Description</div>
                         <div style="background-color:#eeeeee;padding:.2em;">
                             <div class="row">
@@ -45,7 +45,7 @@
         </div>
     </div>
     <div class="row" hidden="@_hidePhase" @onclick="ShowEstimatePhases">
-        <span><span class="oi oi-list" aria-hidden="true"></span> Show Phases</span>
+        <span style="cursor:pointer;margin-top:.2em;"><span class="oi oi-list" aria-hidden="false"></span> Show Phases</span>
     </div>
     <div class="row" hidden="@_hidePhase">
         <EstimatePhase phase="@currentPhase" OnPhaseSaved="HandlePhaseSaved" OnPhaseDeleted="HandlePhaseDeleted" />

@@ -7,11 +7,13 @@
 @inject NavigationManager NavigationManager
 @inject ILogger<Estimates> Logger
 
-<h3>Estimates</h3>
 <div class="container">
     <div class="row" >
+        <div class="col-8">
+            <h3>Estimates</h3>
+        </div>
         <div class="col-4">
-            <span  @onclick="CreateNewEstimate"><span class="oi oi-plus" aria-hidden="true"></span> Create New Estimate</span>
+            <span style="cursor:pointer;margin-top:.2em;" @onclick="CreateNewEstimate"><span class="oi oi-plus pe-auto" aria-hidden="false"></span> Create New Estimate</span>
         </div>
         <div class="col-8">
             @*            

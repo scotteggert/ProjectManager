@@ -9,8 +9,8 @@
 @foreach (var item in phase.EstimatePhaseRateCardItems)
 {
     <div class="row">
-        <div class="col-10" @onclick="@(e => EditItem(item))">@item.RateCardItem.RoleName - @item.RateCardItem.Rate (@item.Count at @item.PercentageUtilized%)</div>
-        <div class="col-2" @onclick="@(e => RemoveItem(item))" style="padding-left:1em;"><span class="oi oi-x" aria-hidden="true"></span> Remove</div>
+        <div class="col-10" style="cursor:pointer;" @onclick="@(e => EditItem(item))">@item.RateCardItem.RoleName - @item.RateCardItem.Rate (@item.Count at @item.PercentageUtilized%)</div>
+        <div class="col-2" @onclick="@(e => RemoveItem(item))" style="padding-left:1em;cursor:pointer"><span class="oi oi-x" aria-hidden="true"></span> Remove</div>
     </div>
 }
     </div>
@@ -31,15 +31,14 @@
                     </div>
                     groupName = item.GroupName;
                 }
-                <div @onclick="@(e => AddItem(item))">@item.RoleName - @item.Rate</div>
+                <div style="cursor:pointer;margin-left:.5em;" @onclick="@(e => AddItem(item))">@item.RoleName - @item.Rate</div>
             }
         </div>
     </div>
     <div class="col-6" >
-        <div style="background-color:#eeeeee;padding:.2em;">
+        <div style="background-color:#eeeeee;padding-left:.2em;">
             <p>
-                <b>Selected Rate Card Item</b>
-                <span class="oi oi-task" aria-hidden="true" style="padding-left:1em;"></span> Create New
+                <h4>Selected Rate Card Item</h4>
             </p>
 
             <h5>@currentItem.RateCardItem?.RoleName</h5>
@@ -49,7 +48,7 @@
                         <span>Count</span>
                     </div>
                     <div class="col-4">
-                        <InputNumber style="width: 3em;" @bind-Value="currentItem.Count"></InputNumber>
+                        <InputNumber style="width: 4em;" @bind-Value="currentItem.Count"></InputNumber>
                     </div>
                 </div>
                 <div class="row" style="margin-top:.3em;">
@@ -61,11 +60,9 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-6">
-                        <span @onclick="SaveItem"><span class="oi oi-check" aria-hidden="true"></span> Save </span>
-                    </div>
-                    <div class="col-6">
-                        <span @onclick="DeleteCurrentItem"><span class="oi oi-x" aria-hidden="true"></span> Delete</span>
+                    <div class="col-12" style="margin-top:1em;text-align:right;">
+                        <span style="margin-left:2em;cursor:pointer;" @onclick="SaveItem"><span class="oi oi-check" ></span> Save </span>
+                        <span style="cursor:pointer;margin-left:1em;" @onclick="DeleteCurrentItem"><span class="oi oi-x"></span> Delete</span>
                     </div>
                 </div>
             </div>
